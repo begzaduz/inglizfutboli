@@ -6,7 +6,7 @@ const CHANNEL = '@Inglizfutbol';
 const GEMINI_KEY = 'AIzaSyADl3w0TDHZDSVgg4qCE-Fg0fm1mzAwIOA';
 const pending = {};
 
-// Telegram
+// Telegram API bilan ishlash funksiyasi
 function tg(method, data) {
   const body = JSON.stringify(data);
   return new Promise((res, rej) => {
@@ -22,7 +22,7 @@ function tg(method, data) {
   });
 }
 
-// Gemini AI
+// Gemini AI bilan ishlash funksiyasi
 function gemini(prompt) {
   const body = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }]
@@ -45,7 +45,7 @@ function gemini(prompt) {
   });
 }
 
-// AI yangilik yozadi
+// AI yangilik yozish funksiyasi (Tuzatilgan versiya)
 async function autoPost() {
   try {
     const mavzular = [
@@ -59,25 +59,31 @@ async function autoPost() {
     const mavzu = mavzular[Math.floor(Math.random() * mavzular.length)];
 
     const post = await gemini(
-      `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida qisqa, qiziqarli Telegram post yoz.
+      `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqica qisqa, qiziqarli Telegram post yoz.
       Post o'zbek tilida bo'lsin. 3-4 gap. Emoji ishlatsin. 
       Faqat postni yoz, boshqa hech narsa yozma.
-      Oxirida: #InglizFutboli #PremierLeague`
+      Oxirida yangi qatordan: #InglizFutboli #PremierLeague`
     );
 
-    await tg('sendMessage', {
+    // Markdown olib tashlandi, chunki Gemini belgilari xatolikka sabab bo'layotgan edi
+    const res = await tg('sendMessage', {
       chat_id: CHANNEL,
-      text: post,
-      parse_mode: 'Markdown'
+      text: post
     });
 
+    if (!res.ok) {
+      throw new Error(res.description);
+    }
+
     console.log('AI post yuborildi:', new Date().toLocaleString());
+    return true; 
   } catch(e) {
-    console.error('AI xato:', e.message);
+    console.error('AI xato yuz berdi:', e.message);
+    return false; 
   }
 }
 
-// Xabarni qayta ishlash
+// Kelayotgan xabarlarni qayta ishlash
 async function handle(update) {
   const msg = update.message;
   if (!msg) return;
@@ -92,11 +98,16 @@ async function handle(update) {
     });
   }
 
-  // AI buyrug'i
+  // AI buyrug'i (Tuzatilgan qismi)
   if (text === '/ai') {
     await tg('sendMessage', {chat_id: id, text: '⏳ AI yangilik yozayapti...'});
-    await autoPost();
-    await tg('sendMessage', {chat_id: id, text: '✅ AI post kanalga yuborildi!'});
+    const muvaffaqiyat = await autoPost();
+    
+    if (muvaffaqiyat) {
+      await tg('sendMessage', {chat_id: id, text: '✅ AI post kanalga yuborildi!'});
+    } else {
+      await tg('sendMessage', {chat_id: id, text: '❌ AI xabar yuborishda xatolik bo\'ldi. Kanalda bot adminligini va konsolni tekshiring.'});
+    }
     return;
   }
 
@@ -107,13 +118,13 @@ async function handle(update) {
     return tg('sendMessage', {chat_id: id, text: '✅ Yuborildi!', reply_markup: {remove_keyboard: true}});
   }
 
-  // Bekor
+  // Bekor qilish
   if (text === '❌ Bekor' && pending[id]) {
     delete pending[id];
     return tg('sendMessage', {chat_id: id, text: '❌ Bekor.', reply_markup: {remove_keyboard: true}});
   }
 
-  // Oddiy xabar
+  // Oddiy xabar (Siz yozgan xabar)
   if (text && !text.startsWith('/')) {
     pending[id] = text;
     return tg('sendMessage', {
@@ -125,10 +136,10 @@ async function handle(update) {
   }
 }
 
-// Har 3 soatda AI post
+// Har 3 soatda AI avtomatik post joylaydi
 setInterval(autoPost, 3 * 60 * 60 * 1000);
 
-// Server
+// Serverni ishga tushirish
 const PORT = process.env.PORT || 8080;
 http.createServer((req, res) => {
   if (req.method === 'POST') {
@@ -143,4 +154,4 @@ http.createServer((req, res) => {
     res.writeHead(200);
     res.end('OK');
   }
-}).listen(PORT, '0.0.0.0', () => console.log('Ishga tushdi: ' + PORT));
+}).listen(PORT, '0.0.0.0', () => console.log('Bot muvaffaqiyatli ishga tushdi, Port: ' + PORT));
