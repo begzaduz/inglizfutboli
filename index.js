@@ -23,6 +23,7 @@ function tg(method, data) {
 }
 
 // Gemini AI bilan ishlash funksiyasi
+// Gemini AI (Xatolikni aniq ko'rsatadigan yangi versiya)
 function gemini(prompt) {
   const body = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }]
@@ -36,7 +37,19 @@ function gemini(prompt) {
     }, r => { let d=''; r.on('data',c=>d+=c); r.on('end',()=>{
       try {
         const j = JSON.parse(d);
-        res(j.candidates[0].content.parts[0].text);
+        
+        // Agar Google biror xato qaytargan bo'lsa, uni konsolga chiqaramiz
+        if (j.error) {
+          console.error("Google Gemini API Xatoligi:", j.error.message);
+          return rej(new Error(`Google API xatosi: ${j.error.message}`));
+        }
+
+        if (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) {
+          res(j.candidates[0].content.parts[0].text);
+        } else {
+          console.error("Google javob formati boshqacha keldi:", d);
+          rej(new Error("Kutilmagan javob formati"));
+        }
       } catch(e) { rej(e); }
     }); });
     req.on('error', rej);
