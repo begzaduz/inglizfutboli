@@ -6,13 +6,22 @@ const CHANNEL = '@Inglizfutbol';
 const GEMINI_KEY = 'AIzaSyADl3w0TDHZDSVgg4qCE-Fg0fm1mzAwIOA';
 const pending = {};
 
-// Telegram API ulanishi
-function tg(method, data) {
-  const body = JSON.stringify(data);
+// Gemini AI (Eng barqaror gemini-pro modeliga o'tkazilgan versiya)
+function gemini(prompt) {
+  const body = JSON.stringify({
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }]
+      }
+    ]
+  });
+
   return new Promise((res, rej) => {
     const req = https.request({
-      hostname: 'api.telegram.org',
-      path: `/bot${TOKEN}/${method}`,
+      hostname: 'generativelanguage.googleapis.com',
+      // Model nomi gemini-pro ga almashtirildi, bu v1 da xato bermaydi
+      path: `/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,8 +30,27 @@ function tg(method, data) {
     }, r => { 
       let d = ''; 
       r.on('data', c => d += c); 
-      r.on('end', () => res(JSON.parse(d))); 
+      r.on('end', () => {
+        try {
+          const j = JSON.parse(d);
+          
+          if (j.error) {
+            console.error("Google Gemini API Xatoligi:", j.error.message);
+            return rej(new Error(j.error.message));
+          }
+
+          if (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) {
+            res(j.candidates[0].content.parts[0].text);
+          } else {
+            console.error("Google'dan kutilmagan javob formati keldi:", d);
+            rej(new Error("Kutilmagan javob formati"));
+          }
+        } catch(e) { 
+          rej(e); 
+        }
+      }); 
     });
+    
     req.on('error', rej);
     req.write(body);
     req.end();
