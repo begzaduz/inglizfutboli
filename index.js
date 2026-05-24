@@ -29,7 +29,7 @@ function tg(method, data) {
   });
 }
 
-// Gemini AI ulanishi (Eng oxirgi barqaror v1 standarti va majburiy user roli bilan)
+// Gemini AI ulanishi (v1 barqaror versiyasi)
 function gemini(prompt) {
   const body = JSON.stringify({
     contents: [
@@ -99,5 +99,101 @@ async function autoPost() {
       Oxirida yangi qatordan: #InglizFutboli #PremierLeague`
     );
 
-    // Markdown parse_mode olib tashlandi (Gemini belgilari xatoga sabab bo'lmasligi uchun)
-    const res = await tg('sendMessage
+    const res = await tg('sendMessage', {
+      chat_id: CHANNEL,
+      text: post
+    });
+
+    if (!res.ok) {
+      console.error("Telegram xatosi:", res.description);
+      return false;
+    }
+
+    console.log('AI post yuborildi:', new Date().toLocaleString());
+    return true; 
+  } catch(e) {
+    console.error('AI xato yuz berdi:', e.message);
+    return false; 
+  }
+}
+
+// Kelayotgan xabarlarni qayta ishlash
+async function handle(update) {
+  try {
+    if (!update || !update.message) return;
+    const msg = update.message;
+    const id = msg.chat.id;
+    const text = msg.text ? msg.text.trim() : '';
+
+    if (!text) return;
+
+    if (text === '/start') {
+      return tg('sendMessage', {
+        chat_id: id,
+        text: '⚽ *Ingliz Futboli Bot*\n\nYangilik yozing yoki /ai buyrug\'ini bering!\n\n/ai — AI yangilik yozadi\n/avtomatik — Har 3 soatda AI o\'zi yozadi',
+        parse_mode: 'Markdown'
+      });
+    }
+
+    if (text === '/ai') {
+      await tg('sendMessage', {chat_id: id, text: '⏳ AI yangilik yozayapti...'});
+      const muvaffaqiyat = await autoPost();
+      if (muvaffaqiyat) {
+        await tg('sendMessage', {chat_id: id, text: '✅ AI post kanalga yuborildi!'});
+      } else {
+        await tg('sendMessage', {chat_id: id, text: '❌ Xatolik bo\'ldi. Railway loglarini tekshiring.'});
+      }
+      return;
+    }
+
+    if (text === '✅ Yuborish' && pending[id]) {
+      await tg('sendMessage', {chat_id: CHANNEL, text: pending[id]});
+      delete pending[id];
+      return tg('sendMessage', {chat_id: id, text: '✅ Yuborildi!', reply_markup: {remove_keyboard: true}});
+    }
+
+    if (text === '❌ Bekor' && pending[id]) {
+      delete pending[id];
+      return tg('sendMessage', {chat_id: id, text: '❌ Bekor.', reply_markup: {remove_keyboard: true}});
+    }
+
+    if (!text.startsWith('/')) {
+      pending[id] = text;
+      return tg('sendMessage', {
+        chat_id: id,
+        text: `👀 *Ko'rib chiqing:*\n\n${text}`,
+        parse_mode: 'Markdown',
+        reply_markup: {keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true}
+      });
+    }
+  } catch (err) {
+    console.error("Handle ichida xato:", err.message);
+  }
+}
+
+// Har 3 soatda AI avtomatik xabar joylab boradi
+setInterval(autoPost, 3 * 60 * 60 * 1000);
+
+// Server (Mana shu erdagi qavslar va o'zgaruvchilar to'liq tuzatildi)
+const PORT = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      res.writeHead(200);
+      res.end('OK');
+      try { 
+        if (body) {
+          const json = JSON.parse(body);
+          handle(json); 
+        }
+      } catch(err) {
+        console.error("JSON Parseda xato:", err.message);
+      }
+    });
+  } else {
+    res.writeHead(200);
+    res.end('OK');
+  }
+}).listen(PORT, '0.0.0.0', () => console.log('Bot muvaffaqiyatli ishga tushdi, Port: ' + PORT));
