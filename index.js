@@ -6,22 +6,13 @@ const CHANNEL = '@Inglizfutbol';
 const GEMINI_KEY = 'AIzaSyADl3w0TDHZDSVgg4qCE-Fg0fm1mzAwIOA';
 const pending = {};
 
-// Gemini AI (Eng barqaror gemini-pro modeliga o'tkazilgan versiya)
-function gemini(prompt) {
-  const body = JSON.stringify({
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }]
-      }
-    ]
-  });
-
+// Telegram API ulanishi
+function tg(method, data) {
+  const body = JSON.stringify(data);
   return new Promise((res, rej) => {
     const req = https.request({
-      hostname: 'generativelanguage.googleapis.com',
-      // Model nomi gemini-pro ga almashtirildi, bu v1 da xato bermaydi
-      path: `/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+      hostname: 'api.telegram.org',
+      path: `/bot${TOKEN}/${method}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,34 +21,15 @@ function gemini(prompt) {
     }, r => { 
       let d = ''; 
       r.on('data', c => d += c); 
-      r.on('end', () => {
-        try {
-          const j = JSON.parse(d);
-          
-          if (j.error) {
-            console.error("Google Gemini API Xatoligi:", j.error.message);
-            return rej(new Error(j.error.message));
-          }
-
-          if (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) {
-            res(j.candidates[0].content.parts[0].text);
-          } else {
-            console.error("Google'dan kutilmagan javob formati keldi:", d);
-            rej(new Error("Kutilmagan javob formati"));
-          }
-        } catch(e) { 
-          rej(e); 
-        }
-      }); 
+      r.on('end', () => res(JSON.parse(d))); 
     });
-    
     req.on('error', rej);
     req.write(body);
     req.end();
   });
 }
 
-// Gemini AI ulanishi (v1 barqaror versiyasi)
+// Gemini AI ulanishi (v1 tizimida barqaror ishlaydigan gemini-pro modeli)
 function gemini(prompt) {
   const body = JSON.stringify({
     contents: [
@@ -71,7 +43,7 @@ function gemini(prompt) {
   return new Promise((res, rej) => {
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
-      path: `/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      path: `/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -202,7 +174,7 @@ async function handle(update) {
 // Har 3 soatda AI avtomatik xabar joylab boradi
 setInterval(autoPost, 3 * 60 * 60 * 1000);
 
-// Server (Mana shu erdagi qavslar va o'zgaruvchilar to'liq tuzatildi)
+// Server va Webhook tinglovchisi
 const PORT = process.env.PORT || 8080;
 http.createServer((req, res) => {
   if (req.method === 'POST') {
@@ -213,15 +185,4 @@ http.createServer((req, res) => {
       res.end('OK');
       try { 
         if (body) {
-          const json = JSON.parse(body);
-          handle(json); 
-        }
-      } catch(err) {
-        console.error("JSON Parseda xato:", err.message);
-      }
-    });
-  } else {
-    res.writeHead(200);
-    res.end('OK');
-  }
-}).listen(PORT, '0.0.0.0', () => console.log('Bot muvaffaqiyatli ishga tushdi, Port: ' + PORT));
+          const json = JSON.
