@@ -82,4 +82,4 @@ http.createServer(async (req, res) => {
   } else {
     res.writeHead(200); res.end('Bot ishlayapti!');
   }
-}).listen(PORT, () => console.log('Bot ishga tushdi: port ' + PORT));
+}).listen(PORT, '0.0.0.0', () => console.log('Bot ishga tushdi: port ' + PORT));
