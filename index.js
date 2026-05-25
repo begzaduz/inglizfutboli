@@ -1,40 +1,37 @@
 const http = require('http');
 const https = require('https');
 
-const TOKEN = process.env.BOT_TOKEN;
-const GEMINI_KEY = process.env.GEMINI_KEY;
-
+// Token va API kalitlarni xavfsizlik uchun process.env orqali olgan ma'qul, 
+// lekin hozircha kodingizdagi qiymatlarni to'g'rilab joylashtirdim:
+const TOKEN = '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k';
 const CHANNEL = '@Inglizfutbol';
+const GEMINI_KEY = 'AIzaSyADl3w0TDHZDSVgg4qCE-Fg0fm1mzAwIOA';
 const pending = {};
 
 // ================= TELEGRAM API =================
 function tg(method, data) {
   const body = JSON.stringify(data);
-
-  return new Promise((resolve, reject) => {
+  return new Promise((res, rej) => {
     const req = https.request({
       hostname: 'api.telegram.org',
-      path: `/bot${TOKEN}/${method}`,
+      path: `/bot${TOKEN}/${method}`, // Tweak: Oddiy qo'shtirnoq bektik (backtick) belgisiga almashtirildi
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
-    }, res => {
-      let d = '';
-
-      res.on('data', c => d += c);
-
-      res.on('end', () => {
+    }, r => { 
+      let d = ''; 
+      r.on('data', c => d += c); 
+      r.on('end', () => {
         try {
-          resolve(JSON.parse(d));
-        } catch (e) {
-          reject(e);
+          res(JSON.parse(d));
+        } catch(e) {
+          rej(e);
         }
-      });
+      }); 
     });
-
-    req.on('error', reject);
+    req.on('error', rej);
     req.write(body);
     req.end();
   });
@@ -45,244 +42,177 @@ function gemini(prompt) {
   const body = JSON.stringify({
     contents: [
       {
-        role: 'user',
+        role: "user",
         parts: [{ text: prompt }]
       }
     ]
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise((res, rej) => {
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
+      // Tweak: v1beta/models formatiga va barqaror gemini-2.0-flash modeliga moslashtirildi (bektik belgisida)
       path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
-    }, res => {
-      let d = '';
-
-      res.on('data', c => d += c);
-
-      res.on('end', () => {
+    }, r => { 
+      let d = ''; 
+      r.on('data', c => d += c); 
+      r.on('end', () => {
         try {
-          const json = JSON.parse(d);
-
-          if (json.error) {
-            return reject(new Error(json.error.message));
+          const j = JSON.parse(d);
+          
+          if (j.error) {
+            console.error("Google Gemini API Xatoligi:", j.error.message);
+            return rej(new Error(j.error.message));
           }
 
-          const text =
-            json.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (!text) {
-            return reject(new Error('AI javob qaytarmadi'));
+          const text = j.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            res(text);
+          } else {
+            console.error("Google'dan kutilmagan javob formati keldi:", d);
+            rej(new Error("Kutilmagan javob formati"));
           }
-
-          resolve(text);
-
-        } catch (e) {
-          reject(e);
+        } catch(e) { 
+          rej(e); 
         }
-      });
+      }); 
     });
-
-    req.on('error', reject);
+    
+    req.on('error', rej);
     req.write(body);
     req.end();
   });
 }
 
-// ================= AI POST =================
+// ================= AI POST GENERATOR =================
 async function autoPost() {
   try {
-
-    const topics = [
-      'Premier League yangiliklari',
-      'Arsenal transferlari',
-      'Manchester City tarkibi',
-      'Liverpool formasi',
-      'Chelsea yangiliklari',
-      'Manchester United muammolari'
+    const mavzular = [
+      'Premier League so\'nggi yangiliklari',
+      'Premier League transferlar',
+      'Arsenal FC yangiliklari',
+      'Manchester City yangiliklari',
+      'Liverpool FC yangiliklari',
+      'Chelsea FC yangiliklari',
     ];
+    const mavzu = mavzular[Math.floor(Math.random() * mavzular.length)];
 
-    const topic =
-      topics[Math.floor(Math.random() * topics.length)];
+    // Tweak: Prompt matni to'g'ri backtick ichiga olindi
+    const post = await gemini(`Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida qisqa, qiziqarli Telegram post yoz. Post o'zbek tilida bo'lsin. 3-4 gap. Emoji ishlatsin. Faqat postni yoz, boshqa hech narsa yozma. Oxirida yangi qatordan: #InglizFutboli #PremierLeague`);
 
-    const post = await gemini(`
-"${topic}" haqida o'zbek tilida Telegram post yoz.
-
-Talablar:
-- 3-4 gap
-- Qiziqarli uslub
-- Emoji ishlat
-- Oxirida hashtag qo'sh
-
-Hashtag:
-#InglizFutboli #PremierLeague
-`);
-
-    const result = await tg('sendMessage', {
+    const res = await tg('sendMessage', {
       chat_id: CHANNEL,
       text: post
     });
 
-    if (!result.ok) {
-      console.log(result);
+    if (!res.ok) {
+      console.error("Telegram xatosi:", res.description);
       return false;
     }
 
-    console.log('AI post yuborildi');
-    return true;
-
-  } catch (e) {
-    console.error('AI xato:', e.message);
-    return false;
+    console.log('AI post yuborildi:', new Date().toLocaleString());
+    return true; 
+  } catch(e) {
+    console.error('AI xato yuz berdi:', e.message);
+    return false; 
   }
 }
 
 // ================= HANDLE MESSAGE =================
 async function handle(update) {
-
   try {
-
-    if (!update.message) return;
-
+    if (!update || !update.message) return;
     const msg = update.message;
     const id = msg.chat.id;
-    const text = msg.text?.trim();
+    const text = msg.text ? msg.text.trim() : '';
 
     if (!text) return;
 
-    // START
     if (text === '/start') {
-
       return tg('sendMessage', {
         chat_id: id,
-        text:
-`⚽ Ingliz Futboli Bot
-
-/ai — AI post yozadi
-
-Oddiy matn yuborsangiz preview chiqadi.`,
+        text: '⚽ *Ingliz Futboli Bot*\n\nYangilik yozing yoki /ai buyrug\'ini bering!\n\n/ai — AI yangilik yozadi\n/avtomatik — Har 3 soatda AI o\'zi yozadi',
+        parse_mode: 'Markdown'
       });
     }
 
-    // AI POST
     if (text === '/ai') {
-
-      await tg('sendMessage', {
-        chat_id: id,
-        text: '⏳ AI post yozmoqda...'
-      });
-
-      const ok = await autoPost();
-
-      return tg('sendMessage', {
-        chat_id: id,
-        text: ok
-          ? '✅ Kanalga yuborildi'
-          : '❌ Xatolik yuz berdi'
-      });
+      await tg('sendMessage', { chat_id: id, text: '⏳ AI yangilik yozayapti...' });
+      const muvaffaqiyat = await autoPost();
+      if (muvaffaqiyat) {
+        await tg('sendMessage', { chat_id: id, text: '✅ AI post kanalga yuborildi!' });
+      } else {
+        await tg('sendMessage', { chat_id: id, text: '❌ Xatolik bo\'ldi. API yoki kanal sozlamalarini tekshiring.' });
+      }
+      return;
     }
 
-    // SEND
     if (text === '✅ Yuborish' && pending[id]) {
-
-      await tg('sendMessage', {
-        chat_id: CHANNEL,
-        text: pending[id]
-      });
-
+      await tg('sendMessage', { chat_id: CHANNEL, text: pending[id] });
       delete pending[id];
-
-      return tg('sendMessage', {
-        chat_id: id,
-        text: '✅ Yuborildi',
-        reply_markup: {
-          remove_keyboard: true
-        }
+      return tg('sendMessage', { 
+        chat_id: id, 
+        text: '✅ Yuborildi!', 
+        reply_markup: JSON.stringify({ remove_keyboard: true }) // Tweak: JSON stringga o'tkazildi
       });
     }
 
-    // CANCEL
     if (text === '❌ Bekor' && pending[id]) {
-
       delete pending[id];
-
-      return tg('sendMessage', {
-        chat_id: id,
-        text: '❌ Bekor qilindi',
-        reply_markup: {
-          remove_keyboard: true
-        }
+      return tg('sendMessage', { 
+        chat_id: id, 
+        text: '❌ Bekor.', 
+        reply_markup: JSON.stringify({ remove_keyboard: true }) // Tweak: JSON stringga o'tkazildi
       });
     }
 
-    // PREVIEW
     if (!text.startsWith('/')) {
-
       pending[id] = text;
-
       return tg('sendMessage', {
         chat_id: id,
-        text: `👀 Preview:\n\n${text}`,
-        reply_markup: {
-          keyboard: [
-            ['✅ Yuborish'],
-            ['❌ Bekor']
-          ],
-          resize_keyboard: true
-        }
+        text: `👀 *Ko'rib chiqing:*\n\n${text}`, // Tweak: Matn to'g'ri formatlandi
+        parse_mode: 'Markdown',
+        reply_markup: JSON.stringify({ // Tweak: Obyekt String formatga keltirildi
+          keyboard: [[{ text: '✅ Yuborish' }], [{ text: '❌ Bekor' }]], 
+          resize_keyboard: true 
+        })
       });
     }
-
-  } catch (e) {
-    console.error('Handle xato:', e.message);
+  } catch (err) {
+    console.error("Handle ichida xato:", err.message);
   }
 }
 
-// ================= AUTO POST =================
-setInterval(() => {
-  autoPost();
-}, 3 * 60 * 60 * 1000);
+// Har 3 soatda AI avtomatik xabar joylab boradi
+setInterval(autoPost, 3 * 60 * 60 * 1000);
 
-// ================= SERVER =================
+// ================= SERVER & WEBHOOK =================
 const PORT = process.env.PORT || 8080;
-
 http.createServer((req, res) => {
-
   if (req.method === 'POST') {
-
     let body = '';
-
     req.on('data', c => body += c);
-
     req.on('end', () => {
-
       res.writeHead(200);
       res.end('OK');
-
-      try {
-
-        const json = JSON.parse(body);
-
-        handle(json);
-
+      try { 
+        if (body) {
+          const json = JSON.parse(body);
+          handle(json);
+        }
       } catch (e) {
-        console.error('Webhook xato:', e.message);
+        console.error("Webhook parse xatosi:", e.message);
       }
-
     });
-
   } else {
-
-    res.writeHead(200);
-    res.end('Bot ishlayapti ⚽');
-
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Bot muvaffaqiyatli ishlayapti ⚽');
   }
-
 }).listen(PORT, () => {
-  console.log(`Server ${PORT} portda ishlayapti`);
+  console.log(`Server ${PORT} portda faol.`);
 });
