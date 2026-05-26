@@ -3,7 +3,7 @@ const https = require('https');
 
 const TOKEN = '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k';
 const CHANNEL = '@Inglizfutbol';
-const GEMINI_KEY = 'AIzaSyD9Bo_1XMRyhfNEUUW2QqHXUtSgxFzsw98';
+const GROQ_KEY = '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';
 const pending = {};
 
 function tg(method, data) {
@@ -30,17 +30,20 @@ function tg(method, data) {
   });
 }
 
-function gemini(prompt) {
+function groq(prompt) {
   const body = JSON.stringify({
-    contents: [{ role: "user", parts: [{ text: prompt }] }]
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 500
   });
   return new Promise((res, rej) => {
     const req = https.request({
-      hostname: 'generativelanguage.googleapis.com',
-    path: `/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_KEY}`,
         'Content-Length': Buffer.byteLength(body)
       }
     }, r => {
@@ -50,7 +53,7 @@ function gemini(prompt) {
         try {
           const j = JSON.parse(d);
           if (j.error) return rej(new Error(j.error.message));
-          const text = j.candidates?.[0]?.content?.parts?.[0]?.text;
+          const text = j.choices?.[0]?.message?.content;
           if (text) res(text);
           else rej(new Error("Javob kelmadi"));
         } catch(e) { rej(e); }
@@ -73,8 +76,8 @@ async function autoPost() {
       "Chelsea FC yangiliklari",
     ];
     const mavzu = mavzular[Math.floor(Math.random() * mavzular.length)];
-    const post = await gemini(
-      `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida qisqa, qiziqarli Telegram post yoz. O'zbek tilida, 3-4 gap, emoji bilan. Faqat postni yoz. Oxirida: #InglizFutboli #PremierLeague`
+    const post = await groq(
+      `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida qisqa, qiziqarli Telegram post yoz. O'zbek tilida, 3-4 gap, emoji bilan. Faqat postni yoz, boshqa hech narsa yozma. Oxirida: #InglizFutboli #PremierLeague`
     );
     const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
     if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
