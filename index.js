@@ -76,9 +76,19 @@ async function autoPost() {
       "Chelsea FC yangiliklari",
     ];
     const mavzu = mavzular[Math.floor(Math.random() * mavzular.length)];
-    const post = await groq(
-      `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida qisqa, qiziqarli Telegram post yoz. O'zbek tilida, 3-4 gap, emoji bilan. Faqat postni yoz, boshqa hech narsa yozma. Oxirida: #InglizFutboli #PremierLeague`
-    );
+  const post = await groq(
+  `Sen ingliz futboli mutaxassisisan. "${mavzu}" haqida o'zbek tilida Telegram post yoz.
+
+Quyidagi formatda yoz:
+
+🚨 #BREAKING: [qisqa sarlavha]
+
+🟢 [2-3 gap asosiy ma'lumot]
+
+@Inglizfutbol
+
+Faqat postni yoz, boshqa hech narsa yozma. Raqam, izoh, qo'shimcha matn yozma.`
+);
     const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
     if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
     console.log('AI post yuborildi:', new Date().toLocaleString());
