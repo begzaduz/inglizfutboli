@@ -37,7 +37,7 @@ function gemini(prompt) {
   return new Promise((res, rej) => {
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
-     path: `/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
+    path: `/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
