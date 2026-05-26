@@ -3,7 +3,7 @@ const https = require('https');
 
 const TOKEN = '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k';
 const CHANNEL = '@Inglizfutbol';
-const GEMINI_KEY = 'AIzaSyADl3w0TDHZDSVgg4qCE-Fg0fm1mzAwIOA';
+const GEMINI_KEY = 'AIzaSyD9Bo_1XMRyhfNEUUW2QqHXUtSgxFzsw98';
 const pending = {};
 
 function tg(method, data) {
