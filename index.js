@@ -4,8 +4,153 @@ const https = require('https');
 const TOKEN = '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k';
 const CHANNEL = '@Inglizfutbol';
 const GROQ_KEY = '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';
+const NEWS_KEY = 'd5344d1dcf8a4af7bc15bbf122cc0366';
 const pending = {};
-const lastRssLinks = new Set();
+const postedIds = new Set();
+
+// ── O'ZBEK NOMLARI ──
+const NAMES = {
+  // Klublar — Premier-liga
+  'Liverpool': 'Liverpul',
+  'Manchester City': 'Manchester Siti',
+  'Man City': 'Manchester Siti',
+  'Manchester United': 'Manchester Yunayted',
+  'Man United': 'Manchester Yunayted',
+  'Man Utd': 'Manchester Yunayted',
+  'Arsenal': 'Arsenal',
+  'Chelsea': 'Chelsi',
+  'Tottenham Hotspur': 'Tottenhem Xotspur',
+  'Tottenham': 'Tottenhem',
+  'Spurs': 'Tottenhem',
+  'Aston Villa': 'Aston Villa',
+  'Newcastle United': 'Nyukasl Yunayted',
+  'Newcastle': 'Nyukasl',
+  'West Ham United': 'Vest Hem Yunayted',
+  'West Ham': 'Vest Hem',
+  'Brighton': 'Brayton',
+  'Crystal Palace': 'Kristal Pelas',
+  'Fulham': 'Fulhem',
+  'Brentford': 'Brentford',
+  'Bournemouth': 'Bornmut',
+  'Nottingham Forest': 'Nottingem Forest',
+  'Leicester City': 'Lester Siti',
+  'Leicester': 'Lester',
+  'Everton': 'Everton',
+  'Wolverhampton Wanderers': 'Vulverhempton',
+  'Wolverhampton': 'Vulverhempton',
+  'Wolves': 'Vulverhempton',
+  'Ipswich Town': 'Ipsvich Taun',
+  'Ipswich': 'Ipsvich',
+  'Southampton': 'Sautgempton',
+  // Boshqa ingliz klublari
+  'Leeds United': 'Lids Yunayted',
+  'Leeds': 'Lids',
+  'Sheffield United': 'Sheffild Yunayted',
+  'Burnley': 'Bernli',
+  'Norwich City': 'Norvich Siti',
+  'Norwich': 'Norvich',
+  'Watford': 'Uotford',
+  'West Bromwich Albion': 'Vest Bromvich Albion',
+  'Sunderland': 'Sanderlend',
+  'Blackburn Rovers': 'Blekbern Rovers',
+  'Middlesbrough': 'Midlsbro',
+  'Stoke City': 'Stok Siti',
+  // Xorijiy klublar
+  'Real Madrid': 'Real Madrid',
+  'Barcelona': 'Barselona',
+  'Bayern Munich': 'Bayern Myunxen',
+  'PSG': 'PSJ',
+  'Paris Saint-Germain': 'Parij Sen-Jermen',
+  'Juventus': 'Yuventus',
+  'AC Milan': 'Milan',
+  'Inter Milan': 'Inter',
+  'Atletico Madrid': 'Atletiko Madrid',
+  // Musobaqalar
+  'Premier League': 'Premier-liga',
+  'Champions League': 'Chempionlar ligasi',
+  'FA Cup': 'FA Kubogi',
+  'Carabao Cup': 'Karabao Kubogi',
+  'Europa League': 'Evropa ligasi',
+  'World Cup': 'Jahon chempionati',
+  'Euro': 'Evropa chempionati',
+  // O'yinchilar
+  'Erling Haaland': 'Erling Holland',
+  'Haaland': 'Holland',
+  'Abdukodir Khusanov': 'Abduqodir Husanov',
+  'Khusanov': 'Husanov',
+  'Cole Palmer': 'Koul Palmer',
+  'Palmer': 'Koul Palmer',
+  'Bukayo Saka': 'Bukayo Saka',
+  'Saka': 'Saka',
+  'Phil Foden': 'Fil Foden',
+  'Foden': 'Foden',
+  'Martin Odegaard': 'Martin Edegor',
+  'Ødegaard': 'Edegor',
+  'Odegaard': 'Edegor',
+  'Bruno Fernandes': 'Bruno Fernandesh',
+  'Declan Rice': 'Deklan Rays',
+  'Kevin De Bruyne': 'Kevin De Bryuyne',
+  'De Bruyne': 'De Bryuyne',
+  'Marcus Rashford': 'Markus Reshford',
+  'Rashford': 'Reshford',
+  'Ollie Watkins': 'Olli Uotkins',
+  'Alexander Isak': 'Aleksandr Isak',
+  'Isak': 'Isak',
+  'Luis Diaz': 'Luis Dias',
+  'Jack Grealish': 'Jek Grilish',
+  'Grealish': 'Grilish',
+  'Kai Havertz': 'Kay Haverts',
+  'Havertz': 'Haverts',
+  'Alejandro Garnacho': 'Alexandro Garnacho',
+  'Garnacho': 'Garnacho',
+  'Josko Gvardiol': 'Yoshko Gvardiol',
+  'Gvardiol': 'Gvardiol',
+  'Virgil van Dijk': 'Virjil van Deyk',
+  'van Dijk': 'van Deyk',
+  'Nicolas Jackson': 'Nikolas Jekson',
+  'Salah': 'Saloh',
+  'Mohamed Salah': 'Muhammad Saloh',
+  // Murabbiylar
+  'Enzo Maresca': 'Enso Mareska',
+  'Maresca': 'Mareska',
+  'Xabi Alonso': 'Xabi Alonso',
+  'Roberto De Zerbi': 'Roberto De Zerbi',
+  'Michael Carrick': 'Maykl Kerrik',
+  'Carrick': 'Kerrik',
+  'Mikel Arteta': 'Mikel Arteta',
+  'Arteta': 'Arteta',
+  'Arne Slot': 'Arne Slot',
+  'Unai Emery': 'Unai Emeri',
+  'Eddie Howe': 'Eddi Hau',
+  'Howe': 'Hau',
+  'Andoni Iraola': 'Andoni Iraola',
+  'Fabian Hurzeler': 'Fabian Hyurseler',
+  'Thomas Frank': 'Tomas Frank',
+  'Sean Dyche': 'Shon Daych',
+  'Nuno Espirito Santo': 'Nunu Eshpiritu Santu',
+  'Gary O\'Neil': 'Gari O\'Nil',
+  'Marco Silva': 'Marku Silva',
+  'Oliver Glasner': 'Oliver Glazner',
+  'Steve Cooper': 'Stiv Kuper',
+  'Kieran McKenna': 'Kiran Makkenna',
+  'Russell Martin': 'Rassel Martin',
+  'Pep Guardiola': 'Pep Gvardiola',
+  'Guardiola': 'Gvardiola',
+  'Jurgen Klopp': 'Yurgen Klopp',
+  'Klopp': 'Klopp',
+  'Erik ten Hag': 'Erik ten Xag',
+};
+
+function applyNames(text) {
+  let result = text;
+  // Uzunroqdan qisqaga tartiblash — to'g'ri almashtirish uchun
+  const sorted = Object.entries(NAMES).sort((a, b) => b[0].length - a[0].length);
+  for (const [eng, uzb] of sorted) {
+    const regex = new RegExp(`\\b${eng.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    result = result.replace(regex, uzb);
+  }
+  return result;
+}
 
 // ── TELEGRAM ──
 function tg(method, data) {
@@ -28,7 +173,7 @@ function groq(prompt) {
   const body = JSON.stringify({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 500
+    max_tokens: 600
   });
   return new Promise((res, rej) => {
     const req = https.request({
@@ -43,87 +188,71 @@ function groq(prompt) {
   });
 }
 
-// ── URL DAN MATN O'QISH ──
-function fetchUrl(url) {
+// ── NEWSAPI ──
+function getNews() {
   return new Promise((res, rej) => {
-    const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, r => {
-      if (r.statusCode === 301 || r.statusCode === 302) return fetchUrl(r.headers.location).then(res).catch(rej);
-      let d = ''; r.on('data', c => d += c); r.on('end', () => res(d));
-    });
+    const path = `/v2/everything?q=premier+league&language=en&sortBy=publishedAt&pageSize=10&apiKey=${NEWS_KEY}`;
+    const req = https.request({
+      hostname: 'newsapi.org',
+      path,
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { res(JSON.parse(d)); } catch(e) { rej(e); } }); });
     req.on('error', rej);
-    req.setTimeout(10000, () => { req.destroy(); rej(new Error('Timeout')); });
+    req.end();
   });
 }
 
-// ── RSS DAN YANGILIK ──
-async function getRssNews() {
-  try {
-    const rssUrl = 'https://feeds.bbci.co.uk/sport/football/rss.xml';
-    const xml = await fetchUrl(rssUrl);
-    const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
-    for (const item of items) {
-      const title = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || item.match(/<title>(.*?)<\/title>/))?.[1] || '';
-      const desc = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || '';
-      const link = item.match(/<link>(.*?)<\/link>/)?.[1] || '';
-      if (link && !lastRssLinks.has(link) && title) {
-        lastRssLinks.add(link);
-        if (lastRssLinks.size > 50) lastRssLinks.delete(lastRssLinks.values().next().value);
-        return { title, desc: desc.replace(/<[^>]+>/g, ''), link };
-      }
-    }
-    return null;
-  } catch(e) {
-    console.error('RSS xato:', e.message);
-    return null;
-  }
-}
+// ── TARJIMA ──
+async function translate(title, desc) {
+  const input = `${title}. ${desc || ''}`.slice(0, 1000);
+  const raw = await groq(
+    `Sen ingliz futboli mutaxassisisan va professional tarjimonsan.
 
-// ── MATNNI TARJIMA QILISH ──
-async function translate(text) {
-  return groq(
-    `Sen ingliz futboli mutaxassisisan. Quyidagi inglizcha yangilikni o'zbek tiliga tarjima qilib, Telegram post formatida yoz:
+Quyidagi inglizcha yangilikni O'ZBEK TILIGA tarjima qilib, Telegram post formatida yoz:
 
-"${text}"
+"${input}"
 
-Format:
-🚨 #BREAKING: [qisqa sarlavha]
+QOIDALAR:
+1. Faqat o'zbek tilida yoz, grammatika to'g'ri bo'lsin
+2. Klub, o'yinchi, murabbiy nomlarini ham o'zbek tiliga o'tkazib yoz
+3. Quyidagi formatda yoz:
 
-🟢 [2-3 gap asosiy ma'lumot]
+🚨 #BREAKING: [sarlavha]
+
+🟢 [2-3 gap ma'lumot]
 
 @Inglizfutbol
 
-Faqat postni yoz, boshqa hech narsa yozma.`
+4. Boshqa hech narsa yozma`
   );
+  return applyNames(raw);
 }
 
-// ── RSS AVTOMATIK POST ──
-async function autoRssPost() {
+// ── NEWSAPI AVTOMATIK POST ──
+async function autoNewsPost() {
   try {
-    const news = await getRssNews();
-    if (!news) {
-      console.log('Yangi yangilik topilmadi');
+    const data = await getNews();
+    if (!data.articles || data.articles.length === 0) {
+      console.log('Yangilik topilmadi');
       return false;
     }
-    const post = await translate(news.title + '. ' + news.desc);
-    const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
-    if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
-    console.log('RSS post yuborildi:', news.title);
-    return true;
-  } catch(e) {
-    console.error('autoRssPost xato:', e.message);
+    for (const article of data.articles) {
+      const id = article.url;
+      if (postedIds.has(id)) continue;
+      postedIds.add(id);
+      if (postedIds.size > 200) postedIds.delete(postedIds.values().next().value);
+      const post = await translate(article.title, article.description);
+      const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
+      if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
+      console.log('Yuborildi:', article.title);
+      return true;
+    }
+    console.log('Barcha yangiliklar yuborilgan');
     return false;
-  }
-}
-
-// ── LINK DAN POST ──
-async function postFromLink(link) {
-  try {
-    const html = await fetchUrl(link);
-    const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 2000);
-    return translate(text);
   } catch(e) {
-    throw new Error('Link o\'qib bo\'lmadi: ' + e.message);
+    console.error('autoNewsPost xato:', e.message);
+    return false;
   }
 }
 
@@ -136,71 +265,41 @@ async function handle(update) {
     const text = (msg.text || '').trim();
     const photo = msg.photo;
 
-    // Rasm + matn (caption bilan)
-    if (photo && msg.caption) {
-      const caption = msg.caption.trim();
-      const fileId = photo[photo.length - 1].file_id;
-
-      // Agar caption link bo'lsa
-      if (caption.startsWith('http')) {
-        await tg('sendMessage', { chat_id: id, text: '⏳ Link o\'qilayapti...' });
-        try {
-          const post = await postFromLink(caption);
-          pending[id] = { type: 'photo', fileId, text: post };
-          return tg('sendMessage', {
-            chat_id: id,
-            text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-            parse_mode: 'Markdown',
-            reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-          });
-        } catch(e) {
-          return tg('sendMessage', { chat_id: id, text: '❌ Link o\'qib bo\'lmadi.' });
-        }
-      }
-
-      // Agar caption oddiy matn bo'lsa
-      const post = await translate(caption);
-      pending[id] = { type: 'photo', fileId, text: post };
-      return tg('sendMessage', {
-        chat_id: id,
-        text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-        parse_mode: 'Markdown',
-        reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-      });
-    }
-
-    // Faqat rasm (caption yo'q)
     if (photo) {
-      pending[id] = { type: 'waitText', fileId: photo[photo.length - 1].file_id };
-      return tg('sendMessage', { chat_id: id, text: '📝 Yangilik matnini yoki linkni yozing:' });
+      const fileId = photo[photo.length - 1].file_id;
+      const caption = (msg.caption || '').trim();
+      if (caption) {
+        await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
+        const post = await translate(caption, '');
+        pending[id] = { type: 'photo', fileId, text: post };
+        return tg('sendMessage', {
+          chat_id: id,
+          text: `👀 *Ko'rib chiqing:*\n\n${post}`,
+          parse_mode: 'Markdown',
+          reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
+        });
+      } else {
+        pending[id] = { type: 'waitText', fileId };
+        return tg('sendMessage', { chat_id: id, text: '📝 Yangilik matnini yozing:' });
+      }
     }
 
     if (!text) return;
 
-    // /start
     if (text === '/start') {
       return tg('sendMessage', {
         chat_id: id,
-        text: '⚽ *Ingliz Futboli Bot*\n\n*Qanday ishlaydi:*\n\n📰 Link yuboring → tarjima qiladi\n🖼 Rasm + link/matn → kanalga chiqadi\n✍️ Matn yozing → kanalga yuboradi\n/ai — AI yangilik yozadi\n/rss — BBC Sport dan yangilik oladi',
+        text: '⚽ *Ingliz Futboli Bot*\n\n📰 Matn yuboring → tarjima qiladi\n🖼 Rasm + matn → kanalga chiqadi\n/yangilik — Haqiqiy yangilik oladi',
         parse_mode: 'Markdown'
       });
     }
 
-    // /ai
-    if (text === '/ai') {
-      await tg('sendMessage', { chat_id: id, text: '⏳ AI yangilik yozayapti...' });
-      const ok = await autoRssPost();
-      return tg('sendMessage', { chat_id: id, text: ok ? '✅ Post kanalga yuborildi!' : '❌ Xatolik yuz berdi.' });
-    }
-
-    // /rss
-    if (text === '/rss') {
-      await tg('sendMessage', { chat_id: id, text: '⏳ BBC Sport dan yangilik olinayapti...' });
-      const ok = await autoRssPost();
+    if (text === '/yangilik' || text === '/ai') {
+      await tg('sendMessage', { chat_id: id, text: '⏳ Yangilik olinayapti...' });
+      const ok = await autoNewsPost();
       return tg('sendMessage', { chat_id: id, text: ok ? '✅ Post kanalga yuborildi!' : '❌ Yangi yangilik topilmadi.' });
     }
 
-    // Tasdiqlash
     if (text === '✅ Yuborish' && pending[id]) {
       const p = pending[id];
       if (p.type === 'photo') {
@@ -212,22 +311,15 @@ async function handle(update) {
       return tg('sendMessage', { chat_id: id, text: '✅ Yuborildi!', reply_markup: { remove_keyboard: true } });
     }
 
-    // Bekor
     if (text === '❌ Bekor') {
       delete pending[id];
       return tg('sendMessage', { chat_id: id, text: '❌ Bekor.', reply_markup: { remove_keyboard: true } });
     }
 
-    // Rasm kutilayotgan bo'lsa, matn keldi
     if (pending[id]?.type === 'waitText') {
       const fileId = pending[id].fileId;
       await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-      let post;
-      if (text.startsWith('http')) {
-        try { post = await postFromLink(text); } catch(e) { return tg('sendMessage', { chat_id: id, text: '❌ Link o\'qib bo\'lmadi.' }); }
-      } else {
-        post = await translate(text);
-      }
+      const post = await translate(text, '');
       pending[id] = { type: 'photo', fileId, text: post };
       return tg('sendMessage', {
         chat_id: id,
@@ -237,29 +329,13 @@ async function handle(update) {
       });
     }
 
-    // Link yuborildi
-    if (text.startsWith('http')) {
-      await tg('sendMessage', { chat_id: id, text: '⏳ Link o\'qilayapti...' });
-      try {
-        const post = await postFromLink(text);
-        pending[id] = { type: 'text', text: post };
-        return tg('sendMessage', {
-          chat_id: id,
-          text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-          parse_mode: 'Markdown',
-          reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-        });
-      } catch(e) {
-        return tg('sendMessage', { chat_id: id, text: '❌ Link o\'qib bo\'lmadi.' });
-      }
-    }
-
-    // Oddiy matn
     if (!text.startsWith('/')) {
-      pending[id] = { type: 'text', text };
+      await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
+      const post = await translate(text, '');
+      pending[id] = { type: 'text', text: post };
       return tg('sendMessage', {
         chat_id: id,
-        text: `👀 *Ko'rib chiqing:*\n\n${text}`,
+        text: `👀 *Ko'rib chiqing:*\n\n${post}`,
         parse_mode: 'Markdown',
         reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
       });
@@ -270,10 +346,9 @@ async function handle(update) {
   }
 }
 
-// Har 3 soatda avtomatik RSS post
-setInterval(autoRssPost, 3 * 60 * 60 * 1000);
+// Har 30 daqiqada avtomatik yangilik
+setInterval(autoNewsPost, 30 * 60 * 1000);
 
-// ── SERVER ──
 const PORT = process.env.PORT || 8080;
 http.createServer((req, res) => {
   if (req.method === 'POST') {
