@@ -121,7 +121,7 @@ YANGILIK:
 
 QATTIQ QOIDALAR:
 1. FAQAT berilgan ma'lumotni tarjima qiling — hech narsa qo'shmang, o'ylab topmang
-2. Klub va o'yinchi nomlarini sof o'zbekcha bo'lsin — (Arsenal, Liverpul, Chelsi, Holland va h.k.)
+2. Klub va o'yinchi nomlarini sof o'zbekcha bo'lsin — (Arsenal, Liverpul, Nyukasl, Chelsi, Holland, Salah va h.k.)
 3. Xabar to'liq va tugallangan bo'lsin — o'rtada uzilmasin
 4. "#BREAKING" — FAQAT transfer, ishdan bo'shatish yoki og'ir shikast xabarida
 5. Oddiy yangilikda "#BREAKING" ishlatmang
@@ -130,8 +130,8 @@ QATTIQ QOIDALAR:
 
 FORMAT:
 Oddiy yangilik:
-[Asosiy gap — to'liq va aniq]
-🟢 [Tafsilot — 2-3 gap, faqat berilgan ma'lumotdan]
+[sarlavha — to'liq va aniq]
+[Tafsilot — 2-3 gap, faqat berilgan ma'lumotdan]
 @Inglizfutbol
 
 Muhim yangilik (transfer/shikast/ishdan bo'shatish):
