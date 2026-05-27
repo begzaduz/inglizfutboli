@@ -8,85 +8,22 @@ const NEWS_KEY = 'd5344d1dcf8a4af7bc15bbf122cc0366';
 const pending = {};
 const postedIds = new Set();
 
-// ── O'ZBEK NOMLARI ──
 const NAMES = {
-  // Klublar — Premier-liga
-  'Liverpool': 'Liverpul',
-  'Manchester City': 'Manchester Siti',
-  'Man City': 'Manchester Siti',
-  'Manchester United': 'Manchester Yunayted',
-  'Man United': 'Manchester Yunayted',
-  'Man Utd': 'Manchester Yunayted',
-  'Arsenal': 'Arsenal',
-  'Chelsea': 'Chelsi',
-  'Tottenham Hotspur': 'Tottenhem Xotspur',
-  'Tottenham': 'Tottenhem',
-  'Spurs': 'Tottenhem',
-  'Aston Villa': 'Aston Villa',
-  'Newcastle United': 'Nyukasl Yunayted',
-  'Newcastle': 'Nyukasl',
-  'West Ham United': 'Vest Hem Yunayted',
-  'West Ham': 'Vest Hem',
-  'Brighton': 'Brayton',
-  'Crystal Palace': 'Kristal Pelas',
-  'Fulham': 'Fulhem',
-  'Brentford': 'Brentford',
-  'Bournemouth': 'Bornmut',
-  'Nottingham Forest': 'Nottingem Forest',
-  'Leicester City': 'Lester Siti',
-  'Leicester': 'Lester',
-  'Everton': 'Everton',
-  'Wolverhampton Wanderers': 'Vulverhempton',
-  'Wolverhampton': 'Vulverhempton',
-  'Wolves': 'Vulverhempton',
-  'Ipswich Town': 'Ipsvich Taun',
-  'Ipswich': 'Ipsvich',
-  'Southampton': 'Sautgempton',
-  // Boshqa ingliz klublari
-  'Leeds United': 'Lids Yunayted',
-  'Leeds': 'Lids',
-  'Sheffield United': 'Sheffild Yunayted',
-  'Burnley': 'Bernli',
-  'Norwich City': 'Norvich Siti',
-  'Norwich': 'Norvich',
-  'Watford': 'Uotford',
-  'West Bromwich Albion': 'Vest Bromvich Albion',
-  'Sunderland': 'Sanderlend',
-  'Blackburn Rovers': 'Blekbern Rovers',
-  'Middlesbrough': 'Midlsbro',
-  'Stoke City': 'Stok Siti',
-  // Xorijiy klublar
-  'Real Madrid': 'Real Madrid',
-  'Barcelona': 'Barselona',
-  'Bayern Munich': 'Bayern Myunxen',
-  'PSG': 'PSJ',
-  'Paris Saint-Germain': 'Parij Sen-Jermen',
-  'Juventus': 'Yuventus',
-  'AC Milan': 'Milan',
-  'Inter Milan': 'Inter',
-  'Atletico Madrid': 'Atletiko Madrid',
-  // Musobaqalar
   'Premier League': 'Premier-liga',
   'Champions League': 'Chempionlar ligasi',
   'FA Cup': 'FA Kubogi',
   'Carabao Cup': 'Karabao Kubogi',
   'Europa League': 'Evropa ligasi',
+  'Conference League': 'Konferensiyalar ligasi',
   'World Cup': 'Jahon chempionati',
-  'Euro': 'Evropa chempionati',
-  // O'yinchilar
   'Erling Haaland': 'Erling Holland',
   'Haaland': 'Holland',
   'Abdukodir Khusanov': 'Abduqodir Husanov',
   'Khusanov': 'Husanov',
   'Cole Palmer': 'Koul Palmer',
-  'Palmer': 'Koul Palmer',
-  'Bukayo Saka': 'Bukayo Saka',
-  'Saka': 'Saka',
   'Phil Foden': 'Fil Foden',
-  'Foden': 'Foden',
   'Martin Odegaard': 'Martin Edegor',
   'Ødegaard': 'Edegor',
-  'Odegaard': 'Edegor',
   'Bruno Fernandes': 'Bruno Fernandesh',
   'Declan Rice': 'Deklan Rays',
   'Kevin De Bruyne': 'Kevin De Bryuyne',
@@ -95,55 +32,30 @@ const NAMES = {
   'Rashford': 'Reshford',
   'Ollie Watkins': 'Olli Uotkins',
   'Alexander Isak': 'Aleksandr Isak',
-  'Isak': 'Isak',
   'Luis Diaz': 'Luis Dias',
   'Jack Grealish': 'Jek Grilish',
-  'Grealish': 'Grilish',
   'Kai Havertz': 'Kay Haverts',
-  'Havertz': 'Haverts',
   'Alejandro Garnacho': 'Alexandro Garnacho',
-  'Garnacho': 'Garnacho',
-  'Josko Gvardiol': 'Yoshko Gvardiol',
-  'Gvardiol': 'Gvardiol',
   'Virgil van Dijk': 'Virjil van Deyk',
   'van Dijk': 'van Deyk',
   'Nicolas Jackson': 'Nikolas Jekson',
-  'Salah': 'Saloh',
   'Mohamed Salah': 'Muhammad Saloh',
-  // Murabbiylar
+  'Salah': 'Saloh',
   'Enzo Maresca': 'Enso Mareska',
-  'Maresca': 'Mareska',
-  'Xabi Alonso': 'Xabi Alonso',
-  'Roberto De Zerbi': 'Roberto De Zerbi',
-  'Michael Carrick': 'Maykl Kerrik',
-  'Carrick': 'Kerrik',
-  'Mikel Arteta': 'Mikel Arteta',
-  'Arteta': 'Arteta',
-  'Arne Slot': 'Arne Slot',
-  'Unai Emery': 'Unai Emeri',
-  'Eddie Howe': 'Eddi Hau',
-  'Howe': 'Hau',
-  'Andoni Iraola': 'Andoni Iraola',
-  'Fabian Hurzeler': 'Fabian Hyurseler',
-  'Thomas Frank': 'Tomas Frank',
-  'Sean Dyche': 'Shon Daych',
-  'Nuno Espirito Santo': 'Nunu Eshpiritu Santu',
-  'Gary O\'Neil': 'Gari O\'Nil',
-  'Marco Silva': 'Marku Silva',
-  'Oliver Glasner': 'Oliver Glazner',
-  'Steve Cooper': 'Stiv Kuper',
-  'Kieran McKenna': 'Kiran Makkenna',
-  'Russell Martin': 'Rassel Martin',
   'Pep Guardiola': 'Pep Gvardiola',
   'Guardiola': 'Gvardiola',
   'Jurgen Klopp': 'Yurgen Klopp',
-  'Klopp': 'Klopp',
   'Erik ten Hag': 'Erik ten Xag',
+  'Mikel Arteta': 'Mikel Arteta',
+  'Arne Slot': 'Arne Slot',
+  'Unai Emery': 'Unai Emeri',
+  'Eddie Howe': 'Eddi Hau',
+  'Thomas Frank': 'Tomas Frank',
+  'Marco Silva': 'Marku Silva',
 };
 
 function applyNames(text) {
   let result = text;
-  // Uzunroqdan qisqaga tartiblash — to'g'ri almashtirish uchun
   const sorted = Object.entries(NAMES).sort((a, b) => b[0].length - a[0].length);
   for (const [eng, uzb] of sorted) {
     const regex = new RegExp(`\\b${eng.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
@@ -152,7 +64,6 @@ function applyNames(text) {
   return result;
 }
 
-// ── TELEGRAM ──
 function tg(method, data) {
   const body = JSON.stringify(data);
   return new Promise((res, rej) => {
@@ -162,18 +73,16 @@ function tg(method, data) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { res(JSON.parse(d)); } catch(e) { rej(e); } }); });
-    req.on('error', rej);
-    req.write(body);
-    req.end();
+    req.on('error', rej); req.write(body); req.end();
   });
 }
 
-// ── GROQ AI ──
 function groq(prompt) {
   const body = JSON.stringify({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 600
+    max_tokens: 600,
+    temperature: 0.1
   });
   return new Promise((res, rej) => {
     const req = https.request({
@@ -182,54 +91,64 @@ function groq(prompt) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Length': Buffer.byteLength(body) }
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { const j = JSON.parse(d); if (j.error) return rej(new Error(j.error.message)); const t = j.choices?.[0]?.message?.content; if (t) res(t); else rej(new Error("Javob kelmadi")); } catch(e) { rej(e); } }); });
-    req.on('error', rej);
-    req.write(body);
-    req.end();
+    req.on('error', rej); req.write(body); req.end();
   });
 }
 
-// ── NEWSAPI ──
 function getNews() {
   return new Promise((res, rej) => {
     const path = `/v2/everything?q=premier+league&language=en&sortBy=publishedAt&pageSize=10&apiKey=${NEWS_KEY}`;
     const req = https.request({
-      hostname: 'newsapi.org',
-      path,
-      method: 'GET',
+      hostname: 'newsapi.org', path, method: 'GET',
       headers: { 'User-Agent': 'Mozilla/5.0' }
     }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { res(JSON.parse(d)); } catch(e) { rej(e); } }); });
-    req.on('error', rej);
-    req.end();
+    req.on('error', rej); req.end();
   });
 }
 
-// ── TARJIMA ──
-async function translate(title, desc) {
-  const input = `${title}. ${desc || ''}`.slice(0, 1000);
+async function translate(title, desc, content) {
+  // To'liq matn — content > description > title
+  const fullText = (content || desc || title || '').replace(/\[\+\d+ chars\]/g, '').trim();
+  const input = fullText.slice(0, 1500);
+
   const raw = await groq(
-    `Sen ingliz futboli mutaxassisisan va professional tarjimonsan.
+`Siz ingliz futboli bo'yicha tajribali o'zbek jurnalistisiz.
 
-Quyidagi inglizcha yangilikni O'ZBEK TILIGA tarjima qilib, Telegram post formatida yoz:
+Quyidagi inglizcha yangilikni O'ZBEK TILIGA tarjima qilib, to'liq va tugallangan Telegram post yozing:
 
+YANGILIK:
 "${input}"
 
-QOIDALAR:
-1. Faqat o'zbek tilida yoz, grammatika to'g'ri bo'lsin
-2. Klub, o'yinchi, murabbiy nomlarini ham o'zbek tiliga o'tkazib yoz
-3. Quyidagi formatda yoz:
+QATTIQ QOIDALAR:
+1. FAQAT berilgan ma'lumotni tarjima qiling — hech narsa qo'shmang, o'ylab topmang
+2. Klub va o'yinchi nomlarini sof o'zbekcha bo'lsin — (Arsenal, Liverpul, Chelsi, Holland va h.k.)
+3. Xabar to'liq va tugallangan bo'lsin — o'rtada uzilmasin
+4. "#BREAKING" — FAQAT transfer, ishdan bo'shatish yoki og'ir shikast xabarida
+5. Oddiy yangilikda "#BREAKING" ishlatmang
+6. Iqtibos bo'lsa — "🎙" emoji va qo'shtirnoq ishlating
+7. Xabar qancha uzun bo'lsa ham yangilik darajasida, aniq va professional bo'lsin
 
-🚨 #BREAKING: [sarlavha]
-
-🟢 [2-3 gap ma'lumot]
-
+FORMAT:
+Oddiy yangilik:
+[Asosiy gap — to'liq va aniq]
+🟢 [Tafsilot — 2-3 gap, faqat berilgan ma'lumotdan]
 @Inglizfutbol
 
-4. Boshqa hech narsa yozma`
+Muhim yangilik (transfer/shikast/ishdan bo'shatish):
+#BREAKING: [sarlavha]
+🟢 [Tafsilot — 2-3 gap]
+@Inglizfutbol
+
+Iqtibos:
+🎙 [Ism] — [kontekst]:
+"[iqtibos matni — to'liq]"
+@Inglizfutbol
+
+Faqat postni yozing, boshqa hech narsa yozmang.`
   );
   return applyNames(raw);
 }
 
-// ── NEWSAPI AVTOMATIK POST ──
 async function autoNewsPost() {
   try {
     const data = await getNews();
@@ -242,13 +161,14 @@ async function autoNewsPost() {
       if (postedIds.has(id)) continue;
       postedIds.add(id);
       if (postedIds.size > 200) postedIds.delete(postedIds.values().next().value);
-      const post = await translate(article.title, article.description);
+
+      const post = await translate(article.title, article.description, article.content);
       const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
       if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
       console.log('Yuborildi:', article.title);
       return true;
     }
-    console.log('Barcha yangiliklar yuborilgan');
+    console.log('Barcha yangiliklar allaqachon yuborilgan');
     return false;
   } catch(e) {
     console.error('autoNewsPost xato:', e.message);
@@ -256,7 +176,6 @@ async function autoNewsPost() {
   }
 }
 
-// ── XABAR QAYTA ISHLASH ──
 async function handle(update) {
   try {
     if (!update || !update.message) return;
@@ -270,7 +189,7 @@ async function handle(update) {
       const caption = (msg.caption || '').trim();
       if (caption) {
         await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-        const post = await translate(caption, '');
+        const post = await translate(caption, '', '');
         pending[id] = { type: 'photo', fileId, text: post };
         return tg('sendMessage', {
           chat_id: id,
@@ -289,12 +208,12 @@ async function handle(update) {
     if (text === '/start') {
       return tg('sendMessage', {
         chat_id: id,
-        text: '⚽ *Ingliz Futboli Bot*\n\n📰 Matn yuboring → tarjima qiladi\n🖼 Rasm + matn → kanalga chiqadi\n/yangilik — Haqiqiy yangilik oladi',
+        text: '⚽ *Ingliz Futboli Bot*\n\n📰 Matn yuboring → tarjima qiladi\n🖼 Rasm + matn → kanalga chiqadi\n/yangilik — Yangi xabar oladi',
         parse_mode: 'Markdown'
       });
     }
 
-    if (text === '/yangilik' || text === '/ai') {
+    if (text === '/yangilik') {
       await tg('sendMessage', { chat_id: id, text: '⏳ Yangilik olinayapti...' });
       const ok = await autoNewsPost();
       return tg('sendMessage', { chat_id: id, text: ok ? '✅ Post kanalga yuborildi!' : '❌ Yangi yangilik topilmadi.' });
@@ -319,7 +238,7 @@ async function handle(update) {
     if (pending[id]?.type === 'waitText') {
       const fileId = pending[id].fileId;
       await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-      const post = await translate(text, '');
+      const post = await translate(text, '', '');
       pending[id] = { type: 'photo', fileId, text: post };
       return tg('sendMessage', {
         chat_id: id,
@@ -331,7 +250,7 @@ async function handle(update) {
 
     if (!text.startsWith('/')) {
       await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-      const post = await translate(text, '');
+      const post = await translate(text, '', '');
       pending[id] = { type: 'text', text: post };
       return tg('sendMessage', {
         chat_id: id,
@@ -346,7 +265,6 @@ async function handle(update) {
   }
 }
 
-// Har 30 daqiqada avtomatik yangilik
 setInterval(autoNewsPost, 30 * 60 * 1000);
 
 const PORT = process.env.PORT || 8080;
