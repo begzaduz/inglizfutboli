@@ -92,7 +92,7 @@ POST FORMATI:
 
 [Kirish — 1-2 gap, eng muhim ma'lumot]
 
-[Tafsilot — 2-3 gap, kontekst, statistika, natijalar]
+[Tafsilot — to'liq gap, kontekst, statistika, natijalar]
 
 [Iqtibos bo'lsa: 🎙 "iqtibos matni" — Ism]
 
