@@ -52,231 +52,55 @@ const NAMES = {
   'Eddie Howe': 'Eddi Hau',
   'Thomas Frank': 'Tomas Frank',
   'Marco Silva': 'Marku Silva',
+  // Klub nomlari
+  'Manchester City': 'Manchester Siti',
+  'Manchester United': 'Manchester Yunayted',
+  'Newcastle United': 'Nyukasl',
+  'Newcastle': 'Nyukasl',
+  'Tottenham Hotspur': 'Tottenxem',
+  'Tottenham': 'Tottenxem',
+  'Aston Villa': 'Aston Villa',
+  'West Ham United': 'Uest Xem',
+  'West Ham': 'Uest Xem',
+  'Crystal Palace': 'Kristal Pales',
+  'Wolverhampton': 'Volverhempton',
+  'Wolves': 'Bo\'rilar',
+  'Brighton': 'Brayton',
+  'Brentford': 'Brentford',
+  'Fulham': 'Fulxem',
+  'Bournemouth': 'Bornemut',
+  'Nottingham Forest': 'Nottingem Forest',
+  'Leicester City': 'Lester',
+  'Ipswich': 'Ipsvich',
+  'Southampton': 'Sautempton',
 };
 
-function applyNames(text) {
-  let result = text;
-  const sorted = Object.entries(NAMES).sort((a, b) => b[0].length - a[0].length);
-  for (const [eng, uzb] of sorted) {
-    const regex = new RegExp(`\\b${eng.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    result = result.replace(regex, uzb);
-  }
-  return result;
-}
+// ═══════════════════════════════════════════
+// SYSTEM PROMPT — bir marta aniqlanadi
+// ═══════════════════════════════════════════
+const SYSTEM_PROMPT = `Sen @Inglizfutbol Telegram kanalining professional sport jurnalistisan.
+Sening vazifang: inglizcha futbol yangiligini o'qib, uni to'liq, professional o'zbek jurnalistikasi uslubida Telegram post qilib yozish.
 
-function tg(method, data) {
-  const body = JSON.stringify(data);
-  return new Promise((res, rej) => {
-    const req = https.request({
-      hostname: 'api.telegram.org',
-      path: `/bot${TOKEN}/${method}`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
-    }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { res(JSON.parse(d)); } catch(e) { rej(e); } }); });
-    req.on('error', rej); req.write(body); req.end();
-  });
-}
+USLUB QOIDALARI:
+- Inverted pyramid: eng muhim fakt birinchi, keyin tafsilot
+- Jonli, faol til — passiv konstruksiyalardan qoching
+- Raqamlar, sanalar, natijalar aniq keltirilsin
+- Klub laqablarini ishlat: Arsenal="to'pchilar", Liverpool="qizillar", Chelsea="aristokratlar", Man City="fuqarolar", Man Utd="qizil iblislar", Tottenham="xo'rozlar", Newcastle="qarg'alar", Bournemouth="olchalar", West Ham="bolg'achilar", Crystal Palace="burgutlar", Wolves="bo'rilar", Brighton="qaldirg'ochlar", Brentford="arilar", Everton="karamellar", Aston Villa="villalar"
 
-function groq(prompt) {
-  const body = JSON.stringify({
-    model: 'llama-3.3-70b-versatile',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 600,
-    temperature: 0.1
-  });
-  return new Promise((res, rej) => {
-    const req = https.request({
-      hostname: 'api.groq.com',
-      path: '/openai/v1/chat/completions',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Length': Buffer.byteLength(body) }
-    }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { const j = JSON.parse(d); if (j.error) return rej(new Error(j.error.message)); const t = j.choices?.[0]?.message?.content; if (t) res(t); else rej(new Error("Javob kelmadi")); } catch(e) { rej(e); } }); });
-    req.on('error', rej); req.write(body); req.end();
-  });
-}
+POST FORMATI:
+[emoji] [Sarlavha — qisqa, zarba bilan]
 
-function getNews() {
-  return new Promise((res, rej) => {
-    const path = `/v2/everything?q=premier+league&language=en&sortBy=publishedAt&pageSize=10&apiKey=${NEWS_KEY}`;
-    const req = https.request({
-      hostname: 'newsapi.org', path, method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { res(JSON.parse(d)); } catch(e) { rej(e); } }); });
-    req.on('error', rej); req.end();
-  });
-}
+[Kirish — 1-2 gap, eng muhim ma'lumot]
 
-async function translate(title, desc, content) {
-  // To'liq matn — content > description > title
-  const fullText = (content || desc || title || '').replace(/\[\+\d+ chars\]/g, '').trim();
-  const input = fullText.slice(0, 1500);
+[Tafsilot — 2-3 gap, kontekst, statistika, natijalar]
 
-  const raw = await groq(
-`Siz ingliz futboli bo'yicha tajribali o'zbek jurnalistisiz.
+[Iqtibos bo'lsa: 🎙 "iqtibos matni" — Ism]
 
-Quyidagi inglizcha yangilikni O'ZBEK TILIGA tarjima qilib, to'liq va tugallangan Telegram post yozing:
+[Fakt/kontekst — jadval o'rni, rekord yoki "keyingi o'yin" ma'lumoti]
 
-YANGILIK:
-"${input}"
-
-QATTIQ QOIDALAR:
-1. FAQAT berilgan ma'lumotni tarjima qiling — hech narsa qo'shmang, o'ylab topmang
-2. Klub va o'yinchi nomlarini sof o'zbekcha bo'lsin — (Arsenal, Liverpul, Nyukasl, Chelsi, Holland, Salah va h.k.)
-3. Xabar to'liq va tugallangan bo'lsin — o'rtada uzilmasin
-4. "#BREAKING" — FAQAT transfer, ishdan bo'shatish yoki og'ir shikast xabarida
-5. Oddiy yangilikda "#BREAKING" ishlatmang
-6. Iqtibos bo'lsa — "🎙" emoji va qo'shtirnoq ishlating
-7. Xabar qancha uzun bo'lsa ham yangilik darajasida, aniq va professional bo'lsin
-
-FORMAT:
-Oddiy yangilik:
-[sarlavha — to'liq va aniq]
-[Tafsilot — 2-3 gap, faqat berilgan ma'lumotdan]
 @Inglizfutbol
 
-Muhim yangilik (transfer/shikast/ishdan bo'shatish):
-#BREAKING: [sarlavha]
-🟢 [Tafsilot — 2-3 gap]
-@Inglizfutbol
-
-Iqtibos:
-🎙 [Ism] — [kontekst]:
-"[iqtibos matni — to'liq]"
-@Inglizfutbol
-
-Faqat postni yozing, boshqa hech narsa yozmang.`
-  );
-  return applyNames(raw);
-}
-
-async function autoNewsPost() {
-  try {
-    const data = await getNews();
-    if (!data.articles || data.articles.length === 0) {
-      console.log('Yangilik topilmadi');
-      return false;
-    }
-    for (const article of data.articles) {
-      const id = article.url;
-      if (postedIds.has(id)) continue;
-      postedIds.add(id);
-      if (postedIds.size > 200) postedIds.delete(postedIds.values().next().value);
-
-      const post = await translate(article.title, article.description, article.content);
-      const r = await tg('sendMessage', { chat_id: CHANNEL, text: post });
-      if (!r.ok) { console.error("Telegram xatosi:", r.description); return false; }
-      console.log('Yuborildi:', article.title);
-      return true;
-    }
-    console.log('Barcha yangiliklar allaqachon yuborilgan');
-    return false;
-  } catch(e) {
-    console.error('autoNewsPost xato:', e.message);
-    return false;
-  }
-}
-
-async function handle(update) {
-  try {
-    if (!update || !update.message) return;
-    const msg = update.message;
-    const id = msg.chat.id;
-    const text = (msg.text || '').trim();
-    const photo = msg.photo;
-
-    if (photo) {
-      const fileId = photo[photo.length - 1].file_id;
-      const caption = (msg.caption || '').trim();
-      if (caption) {
-        await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-        const post = await translate(caption, '', '');
-        pending[id] = { type: 'photo', fileId, text: post };
-        return tg('sendMessage', {
-          chat_id: id,
-          text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-          parse_mode: 'Markdown',
-          reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-        });
-      } else {
-        pending[id] = { type: 'waitText', fileId };
-        return tg('sendMessage', { chat_id: id, text: '📝 Yangilik matnini yozing:' });
-      }
-    }
-
-    if (!text) return;
-
-    if (text === '/start') {
-      return tg('sendMessage', {
-        chat_id: id,
-        text: '⚽ *Ingliz Futboli Bot*\n\n📰 Matn yuboring → tarjima qiladi\n🖼 Rasm + matn → kanalga chiqadi\n/yangilik — Yangi xabar oladi',
-        parse_mode: 'Markdown'
-      });
-    }
-
-    if (text === '/yangilik') {
-      await tg('sendMessage', { chat_id: id, text: '⏳ Yangilik olinayapti...' });
-      const ok = await autoNewsPost();
-      return tg('sendMessage', { chat_id: id, text: ok ? '✅ Post kanalga yuborildi!' : '❌ Yangi yangilik topilmadi.' });
-    }
-
-    if (text === '✅ Yuborish' && pending[id]) {
-      const p = pending[id];
-      if (p.type === 'photo') {
-        await tg('sendPhoto', { chat_id: CHANNEL, photo: p.fileId, caption: p.text });
-      } else {
-        await tg('sendMessage', { chat_id: CHANNEL, text: p.text });
-      }
-      delete pending[id];
-      return tg('sendMessage', { chat_id: id, text: '✅ Yuborildi!', reply_markup: { remove_keyboard: true } });
-    }
-
-    if (text === '❌ Bekor') {
-      delete pending[id];
-      return tg('sendMessage', { chat_id: id, text: '❌ Bekor.', reply_markup: { remove_keyboard: true } });
-    }
-
-    if (pending[id]?.type === 'waitText') {
-      const fileId = pending[id].fileId;
-      await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-      const post = await translate(text, '', '');
-      pending[id] = { type: 'photo', fileId, text: post };
-      return tg('sendMessage', {
-        chat_id: id,
-        text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-        parse_mode: 'Markdown',
-        reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-      });
-    }
-
-    if (!text.startsWith('/')) {
-      await tg('sendMessage', { chat_id: id, text: '⏳ Tayyorlanayapti...' });
-      const post = await translate(text, '', '');
-      pending[id] = { type: 'text', text: post };
-      return tg('sendMessage', {
-        chat_id: id,
-        text: `👀 *Ko'rib chiqing:*\n\n${post}`,
-        parse_mode: 'Markdown',
-        reply_markup: { keyboard: [['✅ Yuborish'], ['❌ Bekor']], resize_keyboard: true }
-      });
-    }
-
-  } catch(err) {
-    console.error("Handle xato:", err.message);
-  }
-}
-
-setInterval(autoNewsPost, 30 * 60 * 1000);
-
-const PORT = process.env.PORT || 8080;
-http.createServer((req, res) => {
-  if (req.method === 'POST') {
-    let body = '';
-    req.on('data', c => body += c);
-    req.on('end', () => {
-      res.writeHead(200); res.end('OK');
-      try { if (body) handle(JSON.parse(body)); } catch(e) { console.error("Parse xato:", e.message); }
-    });
-  } else {
-    res.writeHead(200); res.end('Bot ishlayapti ⚽');
-  }
-}).listen(PORT, '0.0.0.0', () => console.log('Server ' + PORT + ' portda faol.'));
+MUHIM:
+- Transfer, ishdan bo'shatish, og'ir shikastda "#BREAKING" qo'sh
+- Oddiy yangilikda "#BREAKING" ishlatma
+- 400-700 belgi oralig'ida yoz
