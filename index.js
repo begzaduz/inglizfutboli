@@ -9,7 +9,7 @@ const path    = require('path');
 const CONFIG = {
   TOKEN      : '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k',
   CHANNEL    : '@Inglizfutbol',
-  GROQ_KEY   : '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',
+  GROQ_KEY   : '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',
   NEWS_KEY   : 'd5344d1dcf8a4af7bc15bbf122cc0366',
   DB_PATH    : path.join(__dirname, 'news_cache.db'),
   PORT       : process.env.PORT || 8080,
@@ -318,7 +318,7 @@ async function groq(userContent) {
   if (json.error) throw new Error('Groq API: ' + json.error.message);
 
   const text = json.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Groq bo'sh javob qaytardi');
+  if (!text) throw new Error("Groq bosh javob qaytardi");
   return text.trim();
 }
 
@@ -536,7 +536,8 @@ async function handle(update) {
         '📰 Matn yuboring → professional post\n' +
         '🖼 Rasm + matn → kanalga chiqadi\n' +
         '/yangilik — Yangi xabar oladi\n' +
-        '/stat — Baza statistikasi'
+        '/stat — Baza statistikasi\n' +
+        '/clearcache — Keshni tozalash'
       );
     }
 
@@ -551,6 +552,18 @@ async function handle(update) {
         db.get('SELECT COUNT(*) as cnt FROM processed_articles', [], (err, row) => {
           const count = err ? '?' : row.cnt;
           tgSend(id, `📊 Bazada ${count} ta yangilik saqlangan.`).then(resolve).catch(resolve);
+        });
+      });
+    }
+
+    if (text === '/clearcache') {
+      return new Promise((resolve) => {
+        db.run('DELETE FROM processed_articles', [], (err) => {
+          if (err) {
+            tgSend(id, '❌ Keshni tozalashda xato: ' + err.message).then(resolve).catch(resolve);
+          } else {
+            tgSend(id, '✅ Kesh tozalandi! /yangilik buyrug\'ini yuboring.').then(resolve).catch(resolve);
+          }
         });
       });
     }
