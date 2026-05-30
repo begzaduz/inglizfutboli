@@ -7,14 +7,13 @@ const path    = require('path');
 // SOZLAMALAR
 // ═══════════════════════════════════════
 const CONFIG = {
-  TOKEN    : '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k',
-  CHANNEL  : '@Inglizfutbol',
-  GROQ_KEY : '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',
-  NEWS_KEY : 'd5344d1dcf8a4af7bc15bbf122cc0366',
-  DB_PATH  : path.join(__dirname, 'news_cache.db'),
-  PORT     : process.env.PORT || 8080,
-  // Interval (ms) — 30 daqiqa
-  INTERVAL : 30 * 60 * 1000,
+  TOKEN      : '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k',
+  CHANNEL    : '@Inglizfutbol',
+  GEMINI_KEY : 'AQ.Ab8RN6IG2cdSBLBQyhFTahecIcwkaScxCe8OdqiCd9mCGtTjsQ',
+  NEWS_KEY   : 'd5344d1dcf8a4af7bc15bbf122cc0366',
+  DB_PATH    : path.join(__dirname, 'news_cache.db'),
+  PORT       : process.env.PORT || 8080,
+  INTERVAL   : 30 * 60 * 1000,
 };
 
 // ═══════════════════════════════════════
@@ -56,7 +55,6 @@ function markProcessed(url, title) {
 // O'ZBEK NOMLARI LUGHATI
 // ═══════════════════════════════════════
 const NAMES = {
-  // Musobaqalar
   'Premier League'           : 'Premier-liga',
   'Champions League'         : 'Chempionlar ligasi',
   'FA Cup'                   : 'FA Kubogi',
@@ -64,7 +62,6 @@ const NAMES = {
   'Europa League'            : 'Evropa ligasi',
   'Conference League'        : 'Konferensiyalar ligasi',
   'World Cup'                : 'Jahon chempionati',
-  // Klublar — Premier liga
   'Manchester City'          : 'Manchester Siti',
   'Man City'                 : 'Manchester Siti',
   'Manchester United'        : 'Manchester Yunayted',
@@ -106,7 +103,6 @@ const NAMES = {
   'Blackburn Rovers'         : 'Blekbern Rovers',
   'Middlesbrough'            : 'Midlsbro',
   'Stoke City'               : 'Stok Siti',
-  // Xorijiy klublar
   'Real Madrid'              : 'Real Madrid',
   'Barcelona'                : 'Barselona',
   'Bayern Munich'            : 'Bayern Myunxen',
@@ -116,7 +112,6 @@ const NAMES = {
   'AC Milan'                 : 'Milan',
   'Inter Milan'              : 'Inter',
   'Atletico Madrid'          : 'Atletiko Madrid',
-  // O'yinchilar
   'Erling Haaland'           : 'Erling Holland',
   'Haaland'                  : 'Holland',
   'Abdukodir Khusanov'       : 'Abduqodir Husanov',
@@ -144,7 +139,6 @@ const NAMES = {
   'Nicolas Jackson'          : 'Nikolas Jekson',
   'Mohamed Salah'            : 'Muhammad Saloh',
   'Salah'                    : 'Saloh',
-  // Murabbiylar
   'Enzo Maresca'             : 'Enso Mareska',
   'Pep Guardiola'            : 'Pep Gvardiola',
   'Guardiola'                : 'Gvardiola',
@@ -161,7 +155,6 @@ const NAMES = {
 function applyNames(text) {
   if (!text) return '';
   let result = text;
-  // Uzunroq nomlarni avval almashtirish (regex conflict oldini olish)
   const sorted = Object.entries(NAMES).sort((a, b) => b[0].length - a[0].length);
   for (const [eng, uzb] of sorted) {
     try {
@@ -173,40 +166,52 @@ function applyNames(text) {
 }
 
 // ═══════════════════════════════════════
-// SYSTEM PROMPT
+// SYSTEM PROMPT — KUCHAYTIRILGAN
 // ═══════════════════════════════════════
-const SYSTEM_PROMPT = `Sen @Inglizfutbol Telegram kanalining professional sport jurnalistisan.
-Sening vazifang: inglizcha futbol yangiligini o'qib, uni to'liq, professional o'zbek jurnalistikasi uslubida Telegram post qilib yozish.
+const SYSTEM_PROMPT = `Sen O'zbekistonning eng yaxshi sport jurnalisti — Telegram kanal @Inglizfutbol uchun yozasan.
 
-USLUB QOIDALARI:
-- Inverted pyramid: eng muhim fakt birinchi, keyin tafsilot
-- Jonli, faol til — passiv konstruksiyalardan qoching
-- Raqamlar, sanalar, natijalar aniq keltirilsin
-- Klub laqablarini ishlat: Arsenal="to'pchilar", Liverpool="qizillar", Chelsea="aristokratlar", Man City="fuqarolar", Man Utd="qizil iblislar", Tottenham="xo'rozlar", Newcastle="qarg'alar", Bournemouth="olchalar", West Ham="bolg'achilar", Crystal Palace="burgutlar", Wolves="bo'rilar", Brighton="qaldirg'ochlar", Brentford="arilar", Everton="karamellar", Aston Villa="villalar"
+MAQSAD: Inglizcha yangilikni o'qib, uni o'zbek kitobxoni uchun JONLI, QIZIQARLI, PROFESSIONAL post qilish. Bu oddiy tarjima EMAS — bu jurnalistik qayta ishlash.
 
-POST FORMATI (faqat oddiy matn, hech qanday Markdown belgisi yo'q):
-[emoji] [Sarlavha — qisqa, zarba bilan]
+JURNALISTIK QOIDALAR:
+1. Inverted pyramid: eng zo'r fakt birinchi gapda bo'lsin
+2. Faol fe'l ishlat: "Saloh gol urdi" — "Saloh tomonidan gol urildi" EGA
+3. Raqamlar aniq: "31-daqiqada", "3:1 hisobida", "15 million funt"
+4. Kontekst qo'sh: o'yinchi necha yoshda, bu necha-nchi goli, jadval o'rni
+5. Hissiyot ber: "ajoyib zarbadan", "keskin qarshi turish", "muzlatuvchi gol"
 
-[Kirish — 1-2 gap, eng muhim ma'lumot]
+KLUB LAQAMLARI (albatta ishlat):
+Arsenal="to'pchilar" | Liverpool="qizillar" | Chelsea="aristokratlar"
+Man City="fuqarolar" | Man Utd="qizil iblislar" | Tottenham="xo'rozlar"
+Newcastle="qarg'alar" | Bournemouth="olchalar" | West Ham="bolg'achilar"
+Crystal Palace="burgutlar" | Wolves="bo'rilar" | Brighton="qaldirg'ochlar"
+Brentford="arilar" | Everton="karamellar" | Aston Villa="villalar"
 
-[Tafsilot — 2-3 gap, kontekst, statistika, natijalar]
+BREAKING NEWS qoidasi:
+- Transfer, ishdan bo'shatish, og'ir shikastlanish, to'satdan natija → "#BREAKING" bilan boshlash
+- Oddiy sharh, intervyu, tahlil → "#BREAKING" ISHLATMA
 
-[Iqtibos bo'lsa: 🎙 iqtibos matni — Ism]
+POST TUZILISHI (aniq shu tartibda):
+[Emoji] [Qisqa, zarba bilan sarlavha — maksimal 10 so'z]
 
-[Fakt/kontekst — jadval o'rni, rekord yoki keyingi o'yin ma'lumoti]
+[Kirish — 1-2 gap. ENG MUHIM fakt. Kitobxonni ilintir.]
+
+[Tafsilot — 2-3 gap. Statistika, kontekst, vaziyat tahlili.]
+
+[🎙 Iqtibos — agar borsa. "Matn" — Ism Familiya]
+
+[Yakunlovchi fakt — jadval o'rni, keyingi o'yin yoki rekord.]
 
 @Inglizfutbol
 
-MUHIM:
-- Transfer, ishdan bo'shatish, og'ir shikastda "#BREAKING" qo'sh
-- Oddiy yangilikda "#BREAKING" ishlatma
-- 400-700 belgi oralig'ida yoz
-- Faqat postni yoz — boshqa hech narsa yozma
-- Hech narsa o'ylab topma — faqat berilgan ma'lumotni yoz
-- *, _, \`, [ ] kabi Markdown belgilarini ISHLATMA — faqat oddiy matn yoz`;
+MUTLAQ TAQIQLAR:
+- *, _, \`, [ ], ** — hech qanday Markdown belgisi ISHLATMA
+- O'ylab topilgan fakt QO'SHma — faqat berilgan ma'lumot
+- "Bu yangilikda..." yoki "Quyida post:" kabi kirish jumlalari YOZMA
+- Faqat tayyor postni yoz — boshqa hech narsa yo'q
+- 400–700 belgi oralig'ida yoz`;
 
 // ═══════════════════════════════════════
-// YORDAMCHI: HTTP/HTTPS so'rov (redirect bilan)
+// YORDAMCHI: HTTP/HTTPS so'rov
 // ═══════════════════════════════════════
 function httpRequest(options, body, redirectCount = 0) {
   return new Promise((resolve, reject) => {
@@ -216,7 +221,6 @@ function httpRequest(options, body, redirectCount = 0) {
 
     try {
       const req = lib.request(options, (r) => {
-        // Redirect
         if ([301, 302, 303, 307, 308].includes(r.statusCode) && r.headers.location) {
           try {
             const loc = new URL(r.headers.location, `https://${options.hostname}`);
@@ -269,42 +273,42 @@ async function tg(method, data) {
 
   try {
     const json = JSON.parse(res.body);
-    if (!json.ok) {
-      console.error(`[Telegram] ${method} xatosi:`, json.description);
-    }
+    if (!json.ok) console.error(`[Telegram] ${method} xatosi:`, json.description);
     return json;
   } catch (e) {
     throw new Error('Telegram JSON parse: ' + e.message);
   }
 }
 
-// Xavfsiz Telegram xabar yuborish (Markdown xatosida oddiy matn bilan qayta)
 async function tgSend(chatId, text) {
-  // Avval parse_mode siz yuborish — eng ishonchli yo'l
   return tg('sendMessage', { chat_id: chatId, text });
 }
 
 // ═══════════════════════════════════════
-// GROQ AI
+// GEMINI 2.0 FLASH API
 // ═══════════════════════════════════════
-async function groq(userContent) {
+async function gemini(userContent) {
   const body = JSON.stringify({
-    model       : 'llama-3.3-70b-versatile',
-    messages    : [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user',   content: userContent   },
-    ],
-    max_tokens  : 700,
-    temperature : 0.4,
+    system_instruction: {
+      parts: [{ text: SYSTEM_PROMPT }]
+    },
+    contents: [{
+      role: 'user',
+      parts: [{ text: userContent }]
+    }],
+    generationConfig: {
+      maxOutputTokens : 700,
+      temperature     : 0.5,
+      topP            : 0.9,
+    }
   });
 
   const res = await httpRequest({
-    hostname : 'api.groq.com',
-    path     : '/openai/v1/chat/completions',
+    hostname : 'generativelanguage.googleapis.com',
+    path     : `/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.GEMINI_KEY}`,
     method   : 'POST',
     headers  : {
       'Content-Type'   : 'application/json',
-      'Authorization'  : `Bearer ${CONFIG.GROQ_KEY}`,
       'Content-Length' : Buffer.byteLength(body),
     },
     timeout : 30000,
@@ -312,21 +316,19 @@ async function groq(userContent) {
 
   let json;
   try { json = JSON.parse(res.body); }
-  catch (e) { throw new Error('Groq JSON parse: ' + e.message); }
+  catch (e) { throw new Error('Gemini JSON parse: ' + e.message); }
 
-  if (json.error) throw new Error('Groq API: ' + json.error.message);
+  if (json.error) throw new Error('Gemini API: ' + json.error.message);
 
-  const text = json.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Groq bo\'sh javob qaytardi');
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini bo\'sh javob qaytardi');
   return text.trim();
 }
 
 // ═══════════════════════════════════════
-// NEWSAPI  ← ASOSIY TUZATISH
-// Bepul plan: faqat top-headlines ishlaydi
+// NEWSAPI
 // ═══════════════════════════════════════
 async function fetchNews() {
-  // Bepul plan uchun top-headlines + sports manbalari
   const p = [
     '/v2/top-headlines',
     '?sources=bbc-sport,goal,four-four-two,talksport',
@@ -347,9 +349,7 @@ async function fetchNews() {
   try { json = JSON.parse(res.body); }
   catch (e) { throw new Error('NewsAPI JSON parse: ' + e.message); }
 
-  if (json.status === 'error') {
-    throw new Error(`NewsAPI xato [${json.code}]: ${json.message}`);
-  }
+  if (json.status === 'error') throw new Error(`NewsAPI xato [${json.code}]: ${json.message}`);
 
   return json;
 }
@@ -387,35 +387,34 @@ async function fetchArticleText(url) {
 }
 
 // ═══════════════════════════════════════
-// AI PIPELINE — TARJIMA + FORMAT
+// AI PIPELINE — GEMINI + KUCHAYTIRILGAN PROMPT
 // ═══════════════════════════════════════
 async function translate(title, desc, content, url) {
-  // 1. NewsAPI content (oxiridagi "[+X chars]" ni olib tashlaymiz)
   let baseText = (content || '').replace(/\[\+\d+ chars\]/g, '').trim();
 
-  // 2. Qisqa bo'lsa URL dan to'liq matn olishga urinish
   if (baseText.length < 300 && url) {
     const fetched = await fetchArticleText(url);
-    if (fetched && fetched.length > baseText.length) {
-      baseText = fetched;
-    }
+    if (fetched && fetched.length > baseText.length) baseText = fetched;
   }
 
-  // 3. Hali ham qisqa — title + desc
   if (baseText.length < 100) {
     baseText = [title, desc].filter(Boolean).join('\n\n');
   }
 
-  const userPrompt = `Quyidagi inglizcha futbol yangiligini professional o'zbek Telegram posti qilib yoz:
+  // Kuchaytirilgan user prompt — kontekst va vazifa aniq
+  const userPrompt = `Quyidagi inglizcha futbol yangiligini professional o'zbek sport jurnalisti sifatida Telegram post qilib yoz.
+
+MUHIM: Bu oddiy tarjima emas. O'zbek kitobxoni uchun jonli, his-tuyg'uli, jurnalistik matn yoz. Laqablarni ishlat, faol fe'l qo'llan, raqamlar aniq bo'lsin.
 
 SARLAVHA: ${title || '(yo\'q)'}
+TAVSIF: ${desc || '(yo\'q)'}
 
-MATN:
+MAQOLA MATNI:
 ${baseText.slice(0, 2000)}
 
-Faqat tayyor postni yoz. Hech qanday Markdown belgisi ishlatma.`;
+Faqat tayyor Telegram postini yoz. Boshqa hech narsa yozma. Markdown belgisi ishlatma.`;
 
-  const raw = await groq(userPrompt);
+  const raw = await gemini(userPrompt);
   return applyNames(raw);
 }
 
@@ -442,7 +441,6 @@ async function autoNewsPost() {
     const url = article.url;
     if (!url) continue;
 
-    // Kesh tekshirish
     try {
       if (await isProcessed(url)) {
         console.log('[autoNewsPost] Keshda bor, o\'tkazildi:', article.title);
@@ -453,13 +451,11 @@ async function autoNewsPost() {
       continue;
     }
 
-    // AI bilan post tayyorlash
     let post;
     try {
       post = await translate(article.title, article.description, article.content, url);
     } catch (e) {
       console.error('[autoNewsPost] AI xatosi:', e.message);
-      // Qayta urinmasligi uchun keshga qo'shib ketamiz
       await markProcessed(url, article.title).catch(() => {});
       continue;
     }
@@ -469,7 +465,6 @@ async function autoNewsPost() {
       continue;
     }
 
-    // Telegram ga yuborish — faqat oddiy matn (Markdown yo'q)
     try {
       const result = await tg('sendMessage', {
         chat_id : CONFIG.CHANNEL,
@@ -512,7 +507,6 @@ async function handle(update) {
     const text  = (msg.text || '').trim();
     const photo = msg.photo;
 
-    // ── RASM + CAPTION ──────────────────
     if (photo) {
       const fileId  = photo[photo.length - 1].file_id;
       const caption = (msg.caption || '').trim();
@@ -520,8 +514,8 @@ async function handle(update) {
       if (caption) {
         await tgSend(id, '⏳ Tayyorlanayapti...');
         try {
-          const post         = await translate(caption, '', '', null);
-          pending[id]        = { type: 'photo', fileId, text: post };
+          const post  = await translate(caption, '', '', null);
+          pending[id] = { type: 'photo', fileId, text: post };
           await tgSend(id, `👀 Ko'rib chiqing:\n\n${post}`);
           return tg('sendMessage', {
             chat_id      : id,
@@ -539,7 +533,6 @@ async function handle(update) {
 
     if (!text) return;
 
-    // ── BUYRUQLAR ────────────────────────
     if (text === '/start') {
       return tgSend(id,
         '⚽ Ingliz Futboli Bot\n\n' +
@@ -565,7 +558,6 @@ async function handle(update) {
       });
     }
 
-    // ── TASDIQLASH / BEKOR ───────────────
     if (text === '✅ Yuborish' && pending[id]) {
       const p = pending[id];
       try {
@@ -595,7 +587,6 @@ async function handle(update) {
       });
     }
 
-    // ── RASM KUTILMOQDA — MATN KELDI ────
     if (pending[id]?.type === 'waitText') {
       const { fileId } = pending[id];
       await tgSend(id, '⏳ Tayyorlanayapti...');
@@ -618,7 +609,6 @@ async function handle(update) {
       }
     }
 
-    // ── ODDIY MATN — AI PIPELINE ─────────
     if (!text.startsWith('/')) {
       await tgSend(id, '⏳ Tayyorlanayapti...');
       try {
@@ -674,21 +664,15 @@ const server = http.createServer((req, res) => {
 
 server.listen(CONFIG.PORT, '0.0.0.0', () => {
   console.log(`[server] Port ${CONFIG.PORT} da ishga tushdi.`);
-
-  // ── Darhol birinchi run (30 daqiqa kutmasdan) ──
   console.log('[autoNewsPost] Birinchi tekshiruv boshlanmoqda...');
   autoNewsPost().catch((e) => console.error('[startup] Xato:', e.message));
 });
 
 server.on('error', (e) => console.error('[server] xato:', e.message));
 
-// ── Har 30 daqiqada yangilik tekshiruv ──
 setInterval(() => {
   autoNewsPost().catch((e) => console.error('[interval] Xato:', e.message));
 }, CONFIG.INTERVAL);
 
-// ═══════════════════════════════════════
-// GLOBAL XATOLIKLARNI USHLASH
-// ═══════════════════════════════════════
 process.on('uncaughtException',  (e) => console.error('[uncaughtException]',  e.message));
 process.on('unhandledRejection', (r) => console.error('[unhandledRejection]', r));
