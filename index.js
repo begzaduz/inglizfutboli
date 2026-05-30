@@ -213,31 +213,6 @@ POST FORMAT — follow exactly:
 
 @Inglizfutbol
 
-EXAMPLE POST 1 (transfer):
-#BREAKING
-🔴 Saloh "qizillar"ni tark etmoqchi!
-
-Muhammad Saloh bu yozda Liverpuldan ketish niyatida ekanligi ma'lum bo'ldi. Misrlik yulduz bilan shartnoma muzokaralari to'xtab qolgan.
-
-Saloh joriy mavsumda 28 gol urdi — bu uning Premier ligadagi eng yaxshi ko'rsatkichi. "Qizillar" yangi shartnoma taklif qilgan, ammo kelishuv hali yo'q.
-
-🎙 "Men Liverpulni sevaman, lekin kelajak noma'lum" — Muhammad Saloh
-
-Liverpul hozir jadvalda 2-o'rinda, Chempionlar ligasiga munosib.
-
-@Inglizfutbol
-
-EXAMPLE POST 2 (match):
-⚽ To'pchilar 3 ta gol bilan Chelsi ustidan g'alaba qozondi!
-
-Arsenal "aristokratlar"ni 3:1 hisobida mag'lub etdi va jadvalda birinchi o'ringa chiqdi. Bukayo Saka ikki gol urdi.
-
-Saka 67 va 81-daqiqalarda to'r titratdi. Leandro Trossard ham hisobni ochdi. Arsenal 5 o'yindan beri yutilmagan.
-
-To'pchilar endi 72 ochiq bilan jadval tepasida, Liverpuldan 3 ball oldinda.
-
-@Inglizfutbol
-
 STRICT RULES:
 - NO Markdown: no *, _, \`, [], **
 - NO invented facts — only what is given
@@ -481,18 +456,13 @@ async function translate(title, desc, content, url) {
     baseText = [title, desc].filter(Boolean).join('\n\n');
   }
 
-  // Kuchaytirilgan user prompt — kontekst va vazifa aniq
-  const userPrompt = `Quyidagi inglizcha futbol yangiligini professional o'zbek sport jurnalisti sifatida Telegram post qilib yoz.
+  const userPrompt = `Write an Uzbek Telegram post for @Inglizfutbol channel based on this English football news. Write ONLY the post, nothing else.
 
-MUHIM: Bu oddiy tarjima emas. O'zbek kitobxoni uchun jonli, his-tuyg'uli, jurnalistik matn yoz. Laqablarni ishlat, faol fe'l qo'llan, raqamlar aniq bo'lsin.
+HEADLINE: ${title || ''}
+DESCRIPTION: ${desc || ''}
+ARTICLE: ${baseText.slice(0, 2000)}
 
-SARLAVHA: ${title || '(yo\'q)'}
-TAVSIF: ${desc || '(yo\'q)'}
-
-MAQOLA MATNI:
-${baseText.slice(0, 2000)}
-
-Faqat tayyor Telegram postini yoz. Boshqa hech narsa yozma. Markdown belgisi ishlatma.`;
+Rules: Use club nicknames. Active voice. Only facts from the article above — do NOT invent any scores, quotes or transfers.`;
 
   const raw = await groq(userPrompt);
   return applyNames(raw);
