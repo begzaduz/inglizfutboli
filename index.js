@@ -10,7 +10,6 @@ const CONFIG = {
   TOKEN      : '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k',
   CHANNEL    : '@Inglizfutbol',
   GROQ_KEY   : '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',
-  NEWS_KEY   : 'd5344d1dcf8a4af7bc15bbf122cc0366',
   DB_PATH    : path.join(__dirname, 'news_cache.db'),
   PORT       : process.env.PORT || 8080,
   INTERVAL   : 30 * 60 * 1000,
@@ -323,32 +322,80 @@ async function groq(userContent) {
 }
 
 // ═══════════════════════════════════════
-// NEWSAPI
+// RSS FEED — BBC SPORT + SKY SPORTS
 // ═══════════════════════════════════════
+const RSS_FEEDS = [
+  'https://feeds.bbci.co.uk/sport/football/premier-league/rss.xml',
+  'https://www.skysports.com/rss/12040',
+  'https://www.goal.com/feeds/en/news',
+  'https://talksport.com/feed/',
+];
+
+// Premier liga va ingliz futboliga aloqador kalit so'zlar
+const FOOTBALL_KEYWORDS = [
+  'premier league', 'arsenal', 'chelsea', 'liverpool', 'manchester',
+  'tottenham', 'newcastle', 'aston villa', 'west ham', 'brighton',
+  'brentford', 'fulham', 'everton', 'wolves', 'crystal palace',
+  'bournemouth', 'nottingham', 'leicester', 'ipswich', 'southampton',
+  'transfer', 'manager', 'injured', 'goal', 'match', 'fixture',
+  'fa cup', 'champions league', 'europa league', 'england',
+];
+
+function isFootballArticle(title, desc) {
+  const text = ((title || '') + ' ' + (desc || '')).toLowerCase();
+  return FOOTBALL_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function parseRSS(xml) {
+  const articles = [];
+  const items = xml.match(/<item>([\s\S]*?)<\/item>/gi) || [];
+  for (const item of items) {
+    const title   = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/s) ||
+                     item.match(/<title>(.*?)<\/title>/s) || [])[1] || '';
+    const desc    = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/s) ||
+                     item.match(/<description>(.*?)<\/description>/s) || [])[1] || '';
+    const url     = (item.match(/<link>(.*?)<\/link>/s) ||
+                     item.match(/<guid[^>]*>(.*?)<\/guid>/s) || [])[1] || '';
+    const content = desc.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (title && url) {
+      articles.push({ title: title.trim(), description: content.slice(0, 300), content, url: url.trim() });
+    }
+  }
+  return articles;
+}
+
+async function fetchRSSFeed(feedUrl) {
+  try {
+    const u = new URL(feedUrl);
+    const res = await httpRequest({
+      protocol : u.protocol,
+      hostname : u.hostname,
+      path     : u.pathname + u.search,
+      method   : 'GET',
+      headers  : {
+        'User-Agent' : 'Mozilla/5.0 (compatible; InglizFutbolBot/1.0)',
+        'Accept'     : 'application/rss+xml, application/xml, text/xml',
+      },
+      timeout : 10000,
+    });
+    if (res.statusCode !== 200) return [];
+    return parseRSS(res.body);
+  } catch (e) {
+    console.error('[RSS] Xato:', feedUrl, e.message);
+    return [];
+  }
+}
+
 async function fetchNews() {
-  const p = [
-    '/v2/top-headlines',
-    '?sources=bbc-sport,goal,four-four-two,talksport',
-    '&language=en',
-    `&pageSize=15`,
-    `&apiKey=${CONFIG.NEWS_KEY}`,
-  ].join('');
-
-  const res = await httpRequest({
-    hostname : 'newsapi.org',
-    path     : p,
-    method   : 'GET',
-    headers  : { 'User-Agent': 'InglizFutbolBot/1.0' },
-    timeout  : 15000,
-  });
-
-  let json;
-  try { json = JSON.parse(res.body); }
-  catch (e) { throw new Error('NewsAPI JSON parse: ' + e.message); }
-
-  if (json.status === 'error') throw new Error(`NewsAPI xato [${json.code}]: ${json.message}`);
-
-  return json;
+  const allArticles = [];
+  for (const feed of RSS_FEEDS) {
+    const articles = await fetchRSSFeed(feed);
+    allArticles.push(...articles);
+  }
+  // Faqat ingliz futboliga aloqador yangiliklar
+  const filtered = allArticles.filter(a => isFootballArticle(a.title, a.description));
+  console.log(`[RSS] Jami: ${allArticles.length}, Futbol: ${filtered.length}`);
+  return { articles: filtered };
 }
 
 // ═══════════════════════════════════════
