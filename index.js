@@ -9,7 +9,7 @@ const path    = require('path');
 const CONFIG = {
   TOKEN      : '8701604879:AAEeEUPd6bclS1zvIKKNAGu1qojRe5r4m1k',
   CHANNEL    : '@Inglizfutbol',
-  GEMINI_KEY : 'AQ.Ab8RN6IG2cdSBLBQyhFTahecIcwkaScxCe8OdqiCd9mCGtTjsQ',
+  GROQ_KEY   : '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',
   NEWS_KEY   : 'd5344d1dcf8a4af7bc15bbf122cc0366',
   DB_PATH    : path.join(__dirname, 'news_cache.db'),
   PORT       : process.env.PORT || 8080,
@@ -285,30 +285,27 @@ async function tgSend(chatId, text) {
 }
 
 // ═══════════════════════════════════════
-// GEMINI 2.0 FLASH API
+// GROQ — COMPOUND BETA
 // ═══════════════════════════════════════
-async function gemini(userContent) {
+async function groq(userContent) {
   const body = JSON.stringify({
-    system_instruction: {
-      parts: [{ text: SYSTEM_PROMPT }]
-    },
-    contents: [{
-      role: 'user',
-      parts: [{ text: userContent }]
-    }],
-    generationConfig: {
-      maxOutputTokens : 700,
-      temperature     : 0.5,
-      topP            : 0.9,
-    }
+    model       : 'llama-3.3-70b-versatile',
+    messages    : [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user',   content: userContent   },
+    ],
+    max_tokens  : 700,
+    temperature : 0.5,
+    top_p       : 0.9,
   });
 
   const res = await httpRequest({
-    hostname : 'generativelanguage.googleapis.com',
-    path     : `/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.GEMINI_KEY}`,
+    hostname : 'api.groq.com',
+    path     : '/openai/v1/chat/completions',
     method   : 'POST',
     headers  : {
       'Content-Type'   : 'application/json',
+      'Authorization'  : `Bearer ${CONFIG.GROQ_KEY}`,
       'Content-Length' : Buffer.byteLength(body),
     },
     timeout : 30000,
@@ -316,12 +313,12 @@ async function gemini(userContent) {
 
   let json;
   try { json = JSON.parse(res.body); }
-  catch (e) { throw new Error('Gemini JSON parse: ' + e.message); }
+  catch (e) { throw new Error('Groq JSON parse: ' + e.message); }
 
-  if (json.error) throw new Error('Gemini API: ' + json.error.message);
+  if (json.error) throw new Error('Groq API: ' + json.error.message);
 
-  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Gemini bo\'sh javob qaytardi');
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Groq bo'sh javob qaytardi');
   return text.trim();
 }
 
@@ -387,7 +384,7 @@ async function fetchArticleText(url) {
 }
 
 // ═══════════════════════════════════════
-// AI PIPELINE — GEMINI + KUCHAYTIRILGAN PROMPT
+// AI PIPELINE — GROQ + KUCHAYTIRILGAN PROMPT
 // ═══════════════════════════════════════
 async function translate(title, desc, content, url) {
   let baseText = (content || '').replace(/\[\+\d+ chars\]/g, '').trim();
@@ -414,7 +411,7 @@ ${baseText.slice(0, 2000)}
 
 Faqat tayyor Telegram postini yoz. Boshqa hech narsa yozma. Markdown belgisi ishlatma.`;
 
-  const raw = await gemini(userPrompt);
+  const raw = await groq(userPrompt);
   return applyNames(raw);
 }
 
